@@ -52,6 +52,19 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// Space Mission Control colors
+				space: {
+					deep: 'hsl(var(--space-deep))',
+					dark: 'hsl(var(--space-dark))',
+					medium: 'hsl(var(--space-medium))',
+					light: 'hsl(var(--space-light))'
+				},
+				status: {
+					online: 'hsl(var(--status-online))',
+					offline: 'hsl(var(--status-offline))',
+					warning: 'hsl(var(--status-warning))',
+					checking: 'hsl(var(--status-checking))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -88,7 +101,11 @@ export default {
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'orbit': 'orbit 20s linear infinite',
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'float': 'float 3s ease-in-out infinite',
+				'starfield': 'starfield 3s ease-in-out infinite alternate'
 			}
 		}
 	},

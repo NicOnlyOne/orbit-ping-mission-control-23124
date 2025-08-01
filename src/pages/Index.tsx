@@ -1,12 +1,212 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { MissionCard } from "@/components/MissionCard";
+import { StatusIndicator } from "@/components/StatusIndicator";
+import heroImage from "@/assets/hero-mission-control.jpg";
+import { useState } from "react";
 
 const Index = () => {
+  const [newMissionUrl, setNewMissionUrl] = useState("");
+  
+  // Mock mission data
+  const missions = [
+    {
+      name: "Alpha Station",
+      url: "https://example.com",
+      status: "online" as const,
+      uptime: "99.97%",
+      responseTime: "142ms"
+    },
+    {
+      name: "Beta Outpost",
+      url: "https://api.beta.com",
+      status: "warning" as const,
+      uptime: "98.3%",
+      responseTime: "580ms"
+    },
+    {
+      name: "Gamma Base",
+      url: "https://gamma-service.net",
+      status: "checking" as const,
+      uptime: "100%",
+      responseTime: "89ms"
+    }
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen">
+      {/* Space particles background */}
+      <div className="space-particles" />
+      
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-space-deep/80 via-space-dark/60 to-space-medium/40" />
+        
+        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
+          <div className="animate-float">
+            <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              🚀 OrbitPing
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground mb-4 font-medium">
+              Your website's mission control
+            </p>
+            <p className="text-lg md:text-xl text-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+              "All systems go — unless they're not. We'll let you know."
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+              🚀 Launch Mission Control
+            </Button>
+            <Button variant="mission" size="lg" className="text-lg px-8 py-6">
+              📊 View Live Demo
+            </Button>
+          </div>
+          
+          {/* Mission Status Overview */}
+          <Card className="bg-space-medium/80 backdrop-blur-sm border-space-light max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-center text-xl">
+                🛰️ Global Mission Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatusIndicator status="online" label="Primary Systems" />
+                <StatusIndicator status="checking" label="Deep Space Scan" />
+                <StatusIndicator status="online" label="Satellite Network" />
+              </div>
+              <div className="text-center text-sm text-muted-foreground pt-4 border-t border-space-light">
+                Monitoring 1,247 active missions across the galaxy
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Mission Control Dashboard */}
+      <section className="py-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+              🛰️ Mission Control Center
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Monitor your digital assets like a space mission. Get instant alerts when systems go dark, 
+              track uptime like orbital trajectories, and maintain mission-critical reliability.
+            </p>
+          </div>
+
+          {/* Add New Mission */}
+          <Card className="bg-space-medium border-space-light mb-12 max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle className="text-center text-xl">
+                🚀 Deploy New Mission
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="mission-url" className="text-sm font-medium">
+                  Target Coordinates (URL)
+                </Label>
+                <Input
+                  id="mission-url"
+                  placeholder="https://your-website.com"
+                  value={newMissionUrl}
+                  onChange={(e) => setNewMissionUrl(e.target.value)}
+                  className="bg-space-dark border-space-light mt-2"
+                />
+              </div>
+              <Button variant="rocket" className="w-full">
+                🚀 Initialize Mission Launch
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Active Missions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {missions.map((mission, index) => (
+              <MissionCard
+                key={index}
+                name={mission.name}
+                url={mission.url}
+                status={mission.status}
+                uptime={mission.uptime}
+                responseTime={mission.responseTime}
+              />
+            ))}
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
+            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(18_90%_55%/0.3)]">
+              <CardHeader>
+                <CardTitle className="text-center">
+                  🚨 Instant Alerts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center">
+                  "Houston, we have a problem." Get notified the moment your systems go dark.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(210_100%_50%/0.3)]">
+              <CardHeader>
+                <CardTitle className="text-center">
+                  📊 Mission Analytics
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center">
+                  Track uptime like orbital mechanics. Detailed reports for mission-critical insights.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(142_100%_45%/0.3)]">
+              <CardHeader>
+                <CardTitle className="text-center">
+                  🛰️ Global Coverage
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground text-center">
+                  Monitor from multiple satellite positions. Worldwide coverage for planetary-scale operations.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-6 text-center">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+            Ready for Liftoff?
+          </h2>
+          <p className="text-xl text-muted-foreground mb-12">
+            Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+              🚀 Start Your Mission
+            </Button>
+            <Button variant="command" size="lg" className="text-lg px-8 py-6">
+              📞 Contact Mission Control
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

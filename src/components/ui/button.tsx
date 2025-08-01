@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -18,6 +18,12 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        // Mission Control variants
+        rocket: "bg-gradient-to-r from-primary to-orange-500 text-primary-foreground hover:shadow-[0_0_20px_hsl(18_90%_55%/0.5)] hover:scale-105 font-semibold",
+        mission: "bg-gradient-to-r from-secondary to-blue-600 text-secondary-foreground hover:shadow-[0_0_20px_hsl(210_100%_50%/0.5)] hover:scale-105",
+        satellite: "bg-gradient-to-r from-accent to-green-500 text-accent-foreground hover:shadow-[0_0_20px_hsl(142_100%_45%/0.5)] hover:scale-105",
+        command: "bg-space-medium border border-space-light text-foreground hover:bg-space-light hover:shadow-[0_0_15px_hsl(220_15%_20%/0.8)]",
+        alert: "bg-destructive text-destructive-foreground hover:bg-destructive/90 animate-pulse-glow",
       },
       size: {
         default: "h-10 px-4 py-2",

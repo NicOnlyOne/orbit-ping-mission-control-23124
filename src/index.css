@@ -8,35 +8,65 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Space Mission Control Theme - Light mode fallback */
+    --background: 220 15% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 15% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 15% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Rocket Orange - Primary mission color */
+    --primary: 18 90% 55%;
+    --primary-foreground: 220 15% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Mission Control Blue - Secondary systems */
+    --secondary: 210 100% 50%;
+    --secondary-foreground: 220 15% 8%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Deep Space Muted */
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 25% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Satellite Green - Success/Online status */
+    --accent: 142 100% 45%;
+    --accent-foreground: 220 15% 8%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Critical Alert Red */
+    --destructive: 0 84% 55%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 15% 20%;
+    --input: 220 15% 15%;
+    --ring: 18 90% 55%;
 
-    --radius: 0.5rem;
+    /* Space-themed design tokens */
+    --space-deep: 220 25% 5%;
+    --space-dark: 220 15% 8%;
+    --space-medium: 220 15% 12%;
+    --space-light: 220 15% 20%;
+    
+    /* Mission status colors */
+    --status-online: 142 100% 45%;
+    --status-offline: 0 84% 55%;
+    --status-warning: 45 100% 50%;
+    --status-checking: 210 100% 50%;
+    
+    /* Cosmic gradients */
+    --gradient-cosmic: linear-gradient(135deg, hsl(220 25% 5%), hsl(220 15% 8%), hsl(210 100% 10%));
+    --gradient-rocket: linear-gradient(135deg, hsl(18 90% 55%), hsl(25 100% 60%));
+    --gradient-mission: linear-gradient(135deg, hsl(210 100% 50%), hsl(220 100% 55%));
+    --gradient-satellite: linear-gradient(135deg, hsl(142 100% 45%), hsl(150 100% 50%));
+    
+    /* Glowing effects */
+    --glow-rocket: 0 0 20px hsl(18 90% 55% / 0.5);
+    --glow-mission: 0 0 20px hsl(210 100% 50% / 0.5);
+    --glow-satellite: 0 0 20px hsl(142 100% 45% / 0.5);
+    --glow-alert: 0 0 20px hsl(0 84% 55% / 0.5);
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +131,59 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background: var(--gradient-cosmic);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Mission Control Animations */
+  @keyframes orbit {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: var(--glow-rocket); }
+    50% { box-shadow: var(--glow-rocket), 0 0 40px hsl(18 90% 55% / 0.8); }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes starfield {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0.3; transform: scale(0.8); }
+  }
+
+  /* Space Particles Background */
+  .space-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  .space-particles::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+                      radial-gradient(2px 2px at 40px 70px, rgba(210, 180, 255, 0.8), transparent),
+                      radial-gradient(1px 1px at 90px 40px, rgba(255, 180, 210, 0.6), transparent),
+                      radial-gradient(1px 1px at 130px 80px, rgba(180, 255, 210, 0.4), transparent),
+                      radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    animation: starfield 3s ease-in-out infinite alternate;
   }
 }
