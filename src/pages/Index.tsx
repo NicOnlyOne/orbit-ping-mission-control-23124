@@ -6,9 +6,13 @@ import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
+  const { user, loading, signOut } = useAuth();
   
   // Mock mission data
   const missions = [
@@ -35,8 +39,55 @@ const Index = () => {
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-6xl mb-4">🛰️</div>
+          <p className="text-xl text-muted-foreground">Initializing Mission Control...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
+      {/* Navigation Header */}
+      <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🚀</span>
+            <span className="text-xl font-bold text-foreground">OrbitPing</span>
+          </div>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{user.email}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => signOut()}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
       {/* Space particles background */}
       <div className="space-particles" />
       
@@ -62,9 +113,17 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
-              🚀 Launch Mission Control
-            </Button>
+            {user ? (
+              <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                🚀 Open Mission Control
+              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                  🚀 Launch Mission Control
+                </Button>
+              </Link>
+            )}
             <Button variant="mission" size="lg" className="text-lg px-8 py-6">
               📊 View Live Demo
             </Button>
@@ -124,8 +183,13 @@ const Index = () => {
                   className="bg-space-dark border-space-light mt-2"
                 />
               </div>
-              <Button variant="rocket" className="w-full">
-                🚀 Initialize Mission Launch
+              <Button 
+                variant="rocket" 
+                className="w-full"
+                disabled={!user}
+                onClick={() => !user && alert('Please sign in to deploy missions')}
+              >
+                {user ? '🚀 Initialize Mission Launch' : '🔒 Sign In Required'}
               </Button>
             </CardContent>
           </Card>
@@ -198,9 +262,17 @@ const Index = () => {
             Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
-              🚀 Start Your Mission
-            </Button>
+            {user ? (
+              <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                🚀 Start Your Mission
+              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                  🚀 Start Your Mission
+                </Button>
+              </Link>
+            )}
             <Button variant="command" size="lg" className="text-lg px-8 py-6">
               📞 Contact Mission Control
             </Button>
