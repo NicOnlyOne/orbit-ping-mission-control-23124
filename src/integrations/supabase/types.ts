@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      monitor_checks: {
+        Row: {
+          checked_at: string
+          error_message: string | null
+          id: string
+          monitor_id: string
+          response_time: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          error_message?: string | null
+          id?: string
+          monitor_id: string
+          response_time?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          error_message?: string | null
+          id?: string
+          monitor_id?: string
+          response_time?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_checks_monitor_id_fkey"
+            columns: ["monitor_id"]
+            isOneToOne: false
+            referencedRelation: "monitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitors: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          last_checked: string | null
+          name: string
+          response_time: number | null
+          status: string
+          updated_at: string
+          uptime_percentage: number | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_checked?: string | null
+          name: string
+          response_time?: number | null
+          status?: string
+          updated_at?: string
+          uptime_percentage?: number | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          last_checked?: string | null
+          name?: string
+          response_time?: number | null
+          status?: string
+          updated_at?: string
+          uptime_percentage?: number | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null

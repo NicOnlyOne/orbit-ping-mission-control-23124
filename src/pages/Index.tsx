@@ -7,37 +7,31 @@ import { StatusIndicator } from "@/components/StatusIndicator";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useMonitors } from "@/hooks/useMonitors";
 import { Link } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Plus, RefreshCw } from "lucide-react";
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
+  const [newMissionName, setNewMissionName] = useState("");
+  const [isDeploying, setIsDeploying] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const { monitors, loading: monitorsLoading, createMonitor, testMonitor } = useMonitors();
   
-  // Mock mission data
-  const missions = [
-    {
-      name: "Alpha Station",
-      url: "https://example.com",
-      status: "online" as const,
-      uptime: "99.97%",
-      responseTime: "142ms"
-    },
-    {
-      name: "Beta Outpost",
-      url: "https://api.beta.com",
-      status: "warning" as const,
-      uptime: "98.3%",
-      responseTime: "580ms"
-    },
-    {
-      name: "Gamma Base",
-      url: "https://gamma-service.net",
-      status: "checking" as const,
-      uptime: "100%",
-      responseTime: "89ms"
+  const handleDeployMission = async () => {
+    if (!newMissionUrl.trim()) return;
+    
+    setIsDeploying(true);
+    try {
+      const monitorId = await createMonitor(newMissionName, newMissionUrl);
+      if (monitorId) {
+        setNewMissionUrl('');
+        setNewMissionName('');
+      }
+    } finally {
+      setIsDeploying(false);
     }
-  ];
+  };
 
   if (loading) {
     return (
@@ -172,6 +166,19 @@ const Index = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <Label htmlFor="mission-name" className="text-sm font-medium">
+                  Mission Name (Optional)
+                </Label>
+                <Input
+                  id="mission-name"
+                  placeholder="Alpha Station"
+                  value={newMissionName}
+                  onChange={(e) => setNewMissionName(e.target.value)}
+                  className="bg-space-dark border-space-light mt-2"
+                  disabled={!user}
+                />
+              </div>
+              <div>
                 <Label htmlFor="mission-url" className="text-sm font-medium">
                   Target Coordinates (URL)
                 </Label>
@@ -181,32 +188,117 @@ const Index = () => {
                   value={newMissionUrl}
                   onChange={(e) => setNewMissionUrl(e.target.value)}
                   className="bg-space-dark border-space-light mt-2"
+                  disabled={!user}
+                  onKeyPress={(e) => e.key === 'Enter' && user && handleDeployMission()}
                 />
               </div>
               <Button 
                 variant="rocket" 
                 className="w-full"
-                disabled={!user}
-                onClick={() => !user && alert('Please sign in to deploy missions')}
+                disabled={!user || !newMissionUrl.trim() || isDeploying}
+                onClick={handleDeployMission}
               >
-                {user ? '🚀 Initialize Mission Launch' : '🔒 Sign In Required'}
+                {isDeploying ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Deploying Mission...
+                  </>
+                ) : user ? (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    🚀 Initialize Mission Launch
+                  </>
+                ) : (
+                  '🔒 Sign In Required'
+                )}
               </Button>
             </CardContent>
           </Card>
 
           {/* Active Missions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {missions.map((mission, index) => (
-              <MissionCard
-                key={index}
-                name={mission.name}
-                url={mission.url}
-                status={mission.status}
-                uptime={mission.uptime}
-                responseTime={mission.responseTime}
-              />
-            ))}
-          </div>
+          {user ? (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-bold text-foreground">Active Missions</h3>
+                <div className="text-sm text-muted-foreground">
+                  {monitors.length} {monitors.length === 1 ? 'mission' : 'missions'} deployed
+                </div>
+              </div>
+              
+              {monitorsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[...Array(3)].map((_, i) => (
+                    <Card key={i} className="bg-space-medium border-space-light animate-pulse">
+                      <CardContent className="p-6">
+                        <div className="h-4 bg-space-light rounded mb-2"></div>
+                        <div className="h-3 bg-space-light rounded w-2/3"></div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : monitors.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {monitors.map((monitor) => (
+                    <MissionCard
+                      key={monitor.id}
+                      name={monitor.name}
+                      url={monitor.url}
+                      status={monitor.status}
+                      uptime={`${monitor.uptime_percentage}%`}
+                      responseTime={monitor.response_time ? `${monitor.response_time}ms` : 'N/A'}
+                      onTest={() => testMonitor(monitor.id)}
+                      lastChecked={monitor.last_checked}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-space-medium border-space-light">
+                  <CardContent className="p-12 text-center">
+                    <div className="text-6xl mb-4">🛰️</div>
+                    <h3 className="text-xl font-semibold mb-2">No Active Missions</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Deploy your first monitoring mission to start tracking your websites and APIs.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                {
+                  name: "Alpha Station",
+                  url: "https://example.com",
+                  status: "online" as const,
+                  uptime: "99.97%",
+                  responseTime: "142ms"
+                },
+                {
+                  name: "Beta Outpost", 
+                  url: "https://api.beta.com",
+                  status: "warning" as const,
+                  uptime: "98.3%",
+                  responseTime: "580ms"
+                },
+                {
+                  name: "Gamma Base",
+                  url: "https://gamma-service.net", 
+                  status: "checking" as const,
+                  uptime: "100%",
+                  responseTime: "89ms"
+                }
+              ].map((mission, index) => (
+                <MissionCard
+                  key={index}
+                  name={mission.name}
+                  url={mission.url}
+                  status={mission.status}
+                  uptime={mission.uptime}
+                  responseTime={mission.responseTime}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
