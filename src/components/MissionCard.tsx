@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "./StatusIndicator";
+import { MonitoringIntervalSlider } from "./MonitoringIntervalSlider";
 import { cn } from "@/lib/utils";
-import { ExternalLink, RefreshCw, Trash2 } from "lucide-react";
+import { ExternalLink, RefreshCw, Trash2, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface MissionCardProps {
   name: string;
@@ -10,9 +12,11 @@ interface MissionCardProps {
   status: "online" | "offline" | "warning" | "checking";
   uptime: string;
   responseTime: string;
+  monitoringInterval?: number;
   className?: string;
   onTest?: () => void;
   onDelete?: () => void;
+  onIntervalChange?: (interval: number) => void;
   lastChecked?: string | null;
 }
 
@@ -22,11 +26,14 @@ export const MissionCard = ({
   status, 
   uptime, 
   responseTime, 
+  monitoringInterval = 300,
   className,
   onTest,
   onDelete,
+  onIntervalChange,
   lastChecked
 }: MissionCardProps) => {
+  const [showSettings, setShowSettings] = useState(false);
   const formatLastChecked = (dateString: string | null) => {
     if (!dateString) return 'Never';
     const date = new Date(dateString);
@@ -132,10 +139,26 @@ export const MissionCard = ({
             </Button>
           )}
           
-          <Button variant="command" size="sm" className="flex-1">
-            📊 Analytics
+          <Button 
+            variant="command" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => setShowSettings(!showSettings)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
           </Button>
         </div>
+
+        {/* Settings Panel */}
+        {showSettings && onIntervalChange && (
+          <div className="mt-4 p-4 bg-space-dark rounded-lg border border-space-light">
+            <MonitoringIntervalSlider
+              value={monitoringInterval}
+              onChange={onIntervalChange}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

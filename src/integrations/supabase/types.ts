@@ -55,6 +55,7 @@ export type Database = {
           error_message: string | null
           id: string
           last_checked: string | null
+          monitoring_interval: number | null
           name: string
           response_time: number | null
           status: string
@@ -68,6 +69,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           last_checked?: string | null
+          monitoring_interval?: number | null
           name: string
           response_time?: number | null
           status?: string
@@ -81,6 +83,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           last_checked?: string | null
+          monitoring_interval?: number | null
           name?: string
           response_time?: number | null
           status?: string

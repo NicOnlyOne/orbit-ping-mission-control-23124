@@ -17,7 +17,7 @@ const Index = () => {
   const [newMissionName, setNewMissionName] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const { user, loading, signOut } = useAuth();
-  const { monitors, loading: monitorsLoading, createMonitor, testMonitor } = useMonitors();
+  const { monitors, loading: monitorsLoading, createMonitor, testMonitor, deleteMonitor, updateMonitorInterval } = useMonitors();
   
   // Handle pending mission from anonymous testing
   useEffect(() => {
@@ -274,7 +274,10 @@ const Index = () => {
                       status={monitor.status}
                       uptime={`${monitor.uptime_percentage}%`}
                       responseTime={monitor.response_time ? `${monitor.response_time}ms` : 'N/A'}
+                      monitoringInterval={monitor.monitoring_interval}
                       onTest={() => testMonitor(monitor.id)}
+                      onDelete={() => deleteMonitor(monitor.id)}
+                      onIntervalChange={(interval) => updateMonitorInterval(monitor.id, interval)}
                       lastChecked={monitor.last_checked}
                     />
                   ))}

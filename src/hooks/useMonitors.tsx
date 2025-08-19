@@ -12,6 +12,7 @@ interface Monitor {
   response_time: number | null;
   uptime_percentage: number;
   error_message: string | null;
+  monitoring_interval: number;
   created_at: string;
   updated_at: string;
 }
@@ -208,12 +209,35 @@ export function useMonitors() {
     fetchMonitors();
   }, [user]);
 
+  // Update monitor interval
+  const updateMonitorInterval = async (monitorId: string, intervalSeconds: number) => {
+    try {
+      const { error } = await supabase
+        .from('monitors')
+        .update({ monitoring_interval: intervalSeconds })
+        .eq('id', monitorId);
+
+      if (error) {
+        console.error('Error updating monitor interval:', error);
+        toast.error('Failed to update monitoring interval');
+        return;
+      }
+
+      toast.success(`🛰️ Monitoring interval updated successfully`);
+      fetchMonitors();
+    } catch (error) {
+      console.error('Unexpected error updating interval:', error);
+      toast.error('Mission control error updating interval');
+    }
+  };
+
   return {
     monitors,
     loading,
     fetchMonitors,
     createMonitor,
     testMonitor,
-    deleteMonitor
+    deleteMonitor,
+    updateMonitorInterval
   };
 }
