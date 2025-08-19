@@ -108,6 +108,7 @@ const Index = () => {
       
       {/* Hero Section */}
       {user ? (
+      <section></section>
             ) : (
               <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div 
