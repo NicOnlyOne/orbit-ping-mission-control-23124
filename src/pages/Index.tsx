@@ -107,7 +107,9 @@ const Index = () => {
       <div className="space-particles" />
       
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {user ? (
+            ) : (
+              <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
           style={{ backgroundImage: `url(${heroImage})` }}
@@ -164,7 +166,8 @@ const Index = () => {
           </Card>
         </div>
       </section>
-
+            )}
+      
       {/* Mission Control Dashboard */}
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
