@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
+import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
 import heroImage from "@/assets/hero-mission-control.jpg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { Link } from "react-router-dom";
@@ -18,12 +19,32 @@ const Index = () => {
   const { user, loading, signOut } = useAuth();
   const { monitors, loading: monitorsLoading, createMonitor, testMonitor } = useMonitors();
   
+  // Handle pending mission from anonymous testing
+  useEffect(() => {
+    if (user) {
+      const pendingUrl = localStorage.getItem('pending-mission-url');
+      if (pendingUrl) {
+        setNewMissionUrl(pendingUrl);
+        setNewMissionName('My Website');
+        localStorage.removeItem('pending-mission-url');
+        
+        // Auto-deploy the mission after a short delay
+        setTimeout(() => {
+          handleDeployMission();
+        }, 1000);
+      }
+    }
+  }, [user]);
+  
   const handleDeployMission = async () => {
-    if (!newMissionUrl.trim()) return;
+    if (!newMissionUrl.trim() || !user) return;
     
     setIsDeploying(true);
     try {
-      const monitorId = await createMonitor(newMissionName, newMissionUrl);
+      const monitorId = await createMonitor(
+        newMissionName || 'My Website', 
+        newMissionUrl
+      );
       if (monitorId) {
         setNewMissionUrl('');
         setNewMissionName('');
@@ -157,63 +178,70 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Add New Mission */}
-          <Card className="bg-space-medium border-space-light mb-12 max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle className="text-center text-xl">
-                🚀 Deploy New Mission
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="mission-name" className="text-sm font-medium">
-                  Mission Name (Optional)
-                </Label>
-                <Input
-                  id="mission-name"
-                  placeholder="Alpha Station"
-                  value={newMissionName}
-                  onChange={(e) => setNewMissionName(e.target.value)}
-                  className="bg-space-dark border-space-light mt-2"
-                  disabled={!user}
-                />
-              </div>
-              <div>
-                <Label htmlFor="mission-url" className="text-sm font-medium">
-                  Target Coordinates (URL)
-                </Label>
-                <Input
-                  id="mission-url"
-                  placeholder="https://your-website.com"
-                  value={newMissionUrl}
-                  onChange={(e) => setNewMissionUrl(e.target.value)}
-                  className="bg-space-dark border-space-light mt-2"
-                  disabled={!user}
-                  onKeyPress={(e) => e.key === 'Enter' && user && handleDeployMission()}
-                />
-              </div>
-              <Button 
-                variant="rocket" 
-                className="w-full"
-                disabled={!user || !newMissionUrl.trim() || isDeploying}
-                onClick={handleDeployMission}
-              >
-                {isDeploying ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Deploying Mission...
-                  </>
-                ) : user ? (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    🚀 Initialize Mission Launch
-                  </>
-                ) : (
-                  '🔒 Sign In Required'
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+          {user ? (
+            /* Registered User - Deploy New Mission */
+            <Card className="bg-space-medium border-space-light mb-12 max-w-2xl mx-auto">
+              <CardHeader>
+                <CardTitle className="text-center text-xl">
+                  🚀 Deploy New Mission
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="mission-name" className="text-sm font-medium">
+                    Mission Name (Optional)
+                  </Label>
+                  <Input
+                    id="mission-name"
+                    placeholder="Alpha Station"
+                    value={newMissionName}
+                    onChange={(e) => setNewMissionName(e.target.value)}
+                    className="bg-space-dark border-space-light mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="mission-url" className="text-sm font-medium">
+                    Target Coordinates (URL)
+                  </Label>
+                  <Input
+                    id="mission-url"
+                    placeholder="https://your-website.com"
+                    value={newMissionUrl}
+                    onChange={(e) => setNewMissionUrl(e.target.value)}
+                    className="bg-space-dark border-space-light mt-2"
+                    onKeyPress={(e) => e.key === 'Enter' && handleDeployMission()}
+                  />
+                </div>
+                <Button 
+                  variant="rocket" 
+                  className="w-full"
+                  disabled={!newMissionUrl.trim() || isDeploying}
+                  onClick={handleDeployMission}
+                >
+                  {isDeploying ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Deploying Mission...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      🚀 Initialize Mission Launch
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Anonymous User - Simple URL Checker */
+            <div className="mb-12">
+              <AnonymousUrlChecker 
+                onConvertToUser={(url) => {
+                  localStorage.setItem('pending-mission-url', url);
+                }}
+              />
+            </div>
+          )}
 
           {/* Active Missions Grid */}
           {user ? (

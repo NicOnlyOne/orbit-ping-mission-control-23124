@@ -30,14 +30,12 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the authorization header
+    // Get the authorization header (optional for anonymous testing)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.log('❌ No authorization header found');
-      return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    let isAuthenticated = false;
+    
+    if (authHeader) {
+      isAuthenticated = true;
     }
 
     // Set the auth token for the request
@@ -116,8 +114,8 @@ Deno.serve(async (req) => {
       };
     }
 
-    // If monitorId is provided, update the monitor and add a check record
-    if (monitorId) {
+    // If monitorId is provided and user is authenticated, update the monitor and add a check record
+    if (monitorId && isAuthenticated) {
       console.log(`💾 Updating monitor ${monitorId} with results`);
       
       try {
