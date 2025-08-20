@@ -35,18 +35,36 @@ export const MissionCard = ({
 }: MissionCardProps) => {
   const [showSettings, setShowSettings] = useState(false);
   const formatLastChecked = (dateString: string | null) => {
-    if (!dateString) return 'Never';
+    if (!dateString) return { relative: 'Never', absolute: '' };
+    
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
+    let relative = '';
+    if (diffMins < 1) relative = 'Just now';
+    else if (diffMins < 60) relative = `${diffMins}m ago`;
+    else if (diffMins < 1440) { // Less than 24 hours
+      const diffHours = Math.floor(diffMins / 60);
+      relative = `${diffHours}h ago`;
+    } else {
+      const diffDays = Math.floor(diffMins / 1440);
+      relative = `${diffDays}d ago`;
+    }
+    
+    // Format absolute time: "Dec 20, 2024 at 3:45 PM"
+    const absolute = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    return { relative, absolute };
   };
 
   return (
@@ -108,8 +126,13 @@ export const MissionCard = ({
         </div>
         
         {lastChecked && (
-          <div className="text-xs text-muted-foreground">
-            Last checked: {formatLastChecked(lastChecked)}
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">
+              Last checked: {formatLastChecked(lastChecked).relative}
+            </div>
+            <div className="text-xs font-mono text-muted-foreground/70">
+              {formatLastChecked(lastChecked).absolute}
+            </div>
           </div>
         )}
         
