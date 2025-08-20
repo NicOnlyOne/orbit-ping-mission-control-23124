@@ -336,46 +336,50 @@ const Index = () => {
           )}
 
           {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
-            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(18_90%_55%/0.3)]">
-              <CardHeader>
-                <CardTitle className="text-center">
-                  🚨 Instant Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center">
-                  "Houston, we have a problem." Get notified the moment your systems go dark.
-                </p>
-              </CardContent>
-            </Card>
+          {user ? (
+              <div></div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
+                <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(18_90%_55%/0.3)]">
+                  <CardHeader>
+                    <CardTitle className="text-center">
+                      🚨 Instant Alerts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-center">
+                      "Houston, we have a problem." Get notified the moment your systems go dark.
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(210_100%_50%/0.3)]">
-              <CardHeader>
-                <CardTitle className="text-center">
-                  📊 Mission Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center">
-                  Track uptime like orbital mechanics. Detailed reports for mission-critical insights.
-                </p>
-              </CardContent>
-            </Card>
+                <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(210_100%_50%/0.3)]">
+                  <CardHeader>
+                    <CardTitle className="text-center">
+                      📊 Mission Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-center">
+                      Track uptime like orbital mechanics. Detailed reports for mission-critical insights.
+                    </p>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(142_100%_45%/0.3)]">
-              <CardHeader>
-                <CardTitle className="text-center">
-                  🛰️ Global Coverage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center">
-                  Monitor from multiple satellite positions. Worldwide coverage for planetary-scale operations.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+                <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(142_100%_45%/0.3)]">
+                  <CardHeader>
+                    <CardTitle className="text-center">
+                      🛰️ Global Coverage
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground text-center">
+                      Monitor from multiple satellite positions. Worldwide coverage for planetary-scale operations.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}      
         </div>
       </section>
 
