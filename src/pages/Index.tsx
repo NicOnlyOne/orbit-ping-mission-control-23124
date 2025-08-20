@@ -299,7 +299,6 @@ const Index = () => {
           <section className="py-20 px-6">
             <div className="max-w-6xl mx-auto">
               {/* 🚀 Your Dashboard component */}
-              <Dashboard />
             </div>
           </section>
         ) : (
