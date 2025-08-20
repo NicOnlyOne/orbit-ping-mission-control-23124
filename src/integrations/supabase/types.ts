@@ -124,6 +124,24 @@ export type Database = {
         }
         Relationships: []
       }
+      devices: {
+        Row: {
+          id: string;
+          user_id: string;
+          token: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          token: string;
+          created_at?: string;
+        };
+        Update: {
+          token?: string;
+          created_at?: string;
+        };
+      };
     }
     Views: {
       [_ in never]: never

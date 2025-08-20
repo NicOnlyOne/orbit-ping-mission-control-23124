@@ -101,7 +101,7 @@ export const usePushNotification = () => {
           await supabase.from('devices').upsert({
             user_id: user.id,
             token,
-          }, { onConflict: ['user_id'] });
+          }, { onConflict: 'user_id' });
         }
       }
     };
