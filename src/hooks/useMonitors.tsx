@@ -87,11 +87,11 @@ export function useMonitors() {
 
       toast.success(`🚀 Mission "${data.name}" deployed successfully!`);
       
-      // Test the URL immediately
-      testMonitor(data.id);
+      // Refresh monitors first so local state contains the new mission
+      await fetchMonitors();
       
-      // Refresh monitors
-      fetchMonitors();
+      // Test the URL immediately
+      await testMonitor(data.id);
       
       return data.id;
     } catch (error) {
@@ -104,10 +104,19 @@ export function useMonitors() {
   // Test a monitor
   const testMonitor = async (monitorId: string) => {
     try {
-      const monitor = monitors.find(m => m.id === monitorId);
+      let monitor = monitors.find(m => m.id === monitorId) as Partial<Monitor> | undefined;
       if (!monitor) {
-        toast.error('Mission not found');
-        return;
+        // Fallback: fetch monitor URL directly from DB in case local state is stale
+        const { data: fallback, error: fetchErr } = await supabase
+          .from('monitors')
+          .select('id, url')
+          .eq('id', monitorId)
+          .single();
+        if (fetchErr || !fallback) {
+          toast.error('Mission not found');
+          return;
+        }
+        monitor = fallback as Partial<Monitor>;
       }
 
       // Update status to checking
@@ -208,6 +217,17 @@ export function useMonitors() {
   useEffect(() => {
     fetchMonitors();
   }, [user]);
+
+  // Kick off tests for monitors that haven't been checked yet
+  useEffect(() => {
+    if (!user || monitors.length === 0) return;
+
+    const uninitialized = monitors.filter(m => !m.last_checked);
+    uninitialized.forEach((m) => {
+      testMonitor(m.id);
+    });
+    // Depend on last_checked to avoid unnecessary repeats
+  }, [user, monitors.map(m => `${m.id}:${m.last_checked ?? ''}`).join('|')]);
 
   // Automatic monitoring: run tests at each monitor's interval (min 30s, max 60m)
   useEffect(() => {
