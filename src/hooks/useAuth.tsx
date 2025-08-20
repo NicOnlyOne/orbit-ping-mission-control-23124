@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { requestPermission } from '../firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -89,3 +90,22 @@ export function useAuth() {
   }
   return context;
 }
+
+export const usePushNotification = () => {
+  useEffect(() => {
+    const setupPush = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const token = await requestPermission();
+        if (token) {
+          await supabase.from('devices').upsert({
+            user_id: user.id,
+            token,
+          }, { onConflict: ['user_id'] });
+        }
+      }
+    };
+
+    setupPush();
+  }, []);
+};
