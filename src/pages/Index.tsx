@@ -295,23 +295,32 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-       {user ? <section></section> : <section className="py-20 px-6 text-center">
-                <div className="max-w-4xl mx-auto">
-                  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-                    Ready for Liftoff?
-                  </h2>
-                  <p className="text-xl text-muted-foreground mb-12">
-                    Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Link to="/auth">
-                      <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
-                        🚀 Start Your Mission
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </section>}      
+       {user ? (
+          <section className="py-20 px-6">
+            <div className="max-w-6xl mx-auto">
+              {/* 🚀 Your Dashboard component */}
+              <Dashboard />
+            </div>
+          </section>
+        ) : (
+          <section className="py-20 px-6 text-center">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+                Ready for Liftoff?
+              </h2>
+              <p className="text-xl text-muted-foreground mb-12">
+                Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link to="/auth">
+                  <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                    🚀 Start Your Mission
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}     
     </div>;
 };
 export default Index;
