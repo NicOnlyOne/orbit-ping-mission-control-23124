@@ -390,9 +390,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
-              <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
-                🚀 Start Your Mission
-              </Button>
+              <div></div>
             ) : (
               <Link to="/auth">
                 <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
