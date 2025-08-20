@@ -400,9 +400,6 @@ const Index = () => {
                 </Button>
               </Link>
             )}
-            <Button variant="command" size="lg" className="text-lg px-8 py-6">
-              📞 Contact Mission Control
-            </Button>
           </div>
         </div>
       </section>
