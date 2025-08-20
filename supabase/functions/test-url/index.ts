@@ -27,19 +27,18 @@ Deno.serve(async (req) => {
     console.log('🚀 Mission Control: URL test initiated');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Get the authorization header (optional for anonymous testing)
-    const authHeader = req.headers.get('Authorization');
-    let isAuthenticated = false;
-    
-    if (authHeader) {
-      isAuthenticated = true;
-    }
+    // Create clients: one with the caller's auth (for RLS), one with service role (for privileged writes)
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const supabaseAuthed = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const supabaseService = createClient(supabaseUrl, serviceRoleKey);
 
-    // Set the auth token for the request
-    supabase.auth.getUser = () => Promise.resolve({ data: { user: null }, error: null });
+    const { data: userData } = await supabaseAuthed.auth.getUser();
+    const user = userData?.user ?? null;
     
     const { url, monitorId }: TestUrlRequest = await req.json();
     
@@ -114,19 +113,34 @@ Deno.serve(async (req) => {
       };
     }
 
-    // If monitorId is provided and user is authenticated, update the monitor and add a check record
-    if (monitorId && isAuthenticated) {
-      console.log(`💾 Updating monitor ${monitorId} with results`);
-      
+    // If monitorId is provided and we have an authenticated user, update DB
+    if (monitorId && user) {
+      console.log(`💾 Updating monitor ${monitorId} for user ${user.id}`);
+
       try {
-        // Update the monitor with latest results
-        const { error: updateError } = await supabase
+        // Verify monitor ownership via RLS-enabled client
+        const { data: monitorRow, error: monitorFetchError } = await supabaseAuthed
+          .from('monitors')
+          .select('id, user_id')
+          .eq('id', monitorId)
+          .single();
+
+        if (monitorFetchError || !monitorRow) {
+          console.error('❌ Monitor fetch/ownership check failed:', monitorFetchError);
+          return new Response(
+            JSON.stringify({ error: 'Monitor not found or access denied' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Update the monitor using the authed client (RLS enforced)
+        const { error: updateError } = await supabaseAuthed
           .from('monitors')
           .update({
             status: testResult.status,
             last_checked: new Date().toISOString(),
             response_time: testResult.responseTime,
-            error_message: testResult.errorMessage || null
+            error_message: testResult.errorMessage || null,
           })
           .eq('id', monitorId);
 
@@ -136,14 +150,14 @@ Deno.serve(async (req) => {
           console.log('✅ Monitor updated successfully');
         }
 
-        // Add a check record
-        const { error: checkError } = await supabase
+        // Insert check record with service role (no public INSERT policy on monitor_checks)
+        const { error: checkError } = await supabaseService
           .from('monitor_checks')
           .insert({
             monitor_id: monitorId,
-            status: testResult.status === 'checking' ? 'online' : testResult.status,
+            status: testResult.status,
             response_time: testResult.responseTime,
-            error_message: testResult.errorMessage || null
+            error_message: testResult.errorMessage || null,
           });
 
         if (checkError) {

@@ -209,6 +209,28 @@ export function useMonitors() {
     fetchMonitors();
   }, [user]);
 
+  // Automatic monitoring: run tests at each monitor's interval (min 30s, max 60m)
+  useEffect(() => {
+    if (!user || monitors.length === 0) return;
+
+    const timers: number[] = [];
+
+    monitors.forEach((m) => {
+      const intervalSec = Math.min(3600, Math.max(30, m.monitoring_interval || 300));
+      const id = window.setInterval(() => {
+        // Avoid stacking tests; if currently checking, skip this tick
+        if (m.status !== 'checking') {
+          testMonitor(m.id);
+        }
+      }, intervalSec * 1000);
+      timers.push(id);
+    });
+
+    return () => {
+      timers.forEach(clearInterval);
+    };
+  }, [user, monitors.map(m => `${m.id}:${m.monitoring_interval}:${m.status}`).join('|')]);
+
   // Update monitor interval
   const updateMonitorInterval = async (monitorId: string, intervalSeconds: number) => {
     try {
