@@ -16,7 +16,14 @@ interface TestResult {
 
 Deno.serve(async (req) => {
   try {
-    const { url, monitorId, forceAlert }: TestUrlRequest = await req.json();
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      console.warn("⚠️ No JSON body provided, defaulting to empty object");
+    }
+
+    const { url, monitorId, forceAlert }: TestUrlRequest = body;
 
     if (!url) {
       return new Response(JSON.stringify({ error: "URL is required" }), {
