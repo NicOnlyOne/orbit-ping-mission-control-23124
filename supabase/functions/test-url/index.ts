@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         // Instead of building with .functions.supabase.co
           const functionsUrl = `https://fvbwalvidzomwmcijxww.supabase.co/functions/v1/send-alert-email`;
 
-          const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
+          const alertResponse = await fetch("https://fvbwalvidzomwmcijxww.supabase.co/functions/v1/send-alert-email", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceRoleKey}`,
