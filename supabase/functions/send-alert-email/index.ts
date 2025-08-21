@@ -1,115 +1,85 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend";
+// supabase/functions/send-alert-email/index.ts
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-// Types
-interface AlertPayload {
-  monitorId: string;
-  monitorName: string;
-  monitorUrl: string;
-  errorMessage?: string | null;
-  statusCode?: number;
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "Mission Control <alerts@your-domain>";
+const REGION = Deno.env.get("RESEND_API_BASE") ?? "https://api.resend.com"; // set EU base if needed
+
+type Payload = {
+  type: "down" | "up";
+  to: string | null | undefined;
+  monitor: { id: string; name?: string | null; url: string };
+  context?: Record<string, unknown>;
+};
+
+async function sendEmail(p: Payload) {
+  if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
+  if (!p.to) throw new Error("Missing recipient email 'to'");
+
+  const subject =
+    p.type === "down"
+      ? `Blackout detected: ${p.monitor.name ?? p.monitor.url}`
+      : `Orbit stable again: ${p.monitor.name ?? p.monitor.url}`;
+
+  const html = `
+  <div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;background:#0b1020;padding:24px;">
+    <h1 style="margin:0 0 12px;color:#93c5fd;">Orbit Ping — Mission Control</h1>
+    <p style="margin:0 0 8px;">Monitor: <strong>${p.monitor.name ?? p.monitor.url}</strong></p>
+    <p style="margin:0 0 8px;">URL: <a style="color:#93c5fd" href="${p.monitor.url}">${p.monitor.url}</a></p>
+    <p style="margin:0 0 8px;">Event: <strong>${p.type === "down" ? "Blackout (DOWN)" : "Recovered (UP)"}</strong></p>
+    <pre style="white-space:pre-wrap;background:#0f172a;color:#cbd5e1;padding:12px;border-radius:8px;">${JSON.stringify(
+      p.context ?? {},
+      null,
+      2,
+    )}</pre>
+    <p style="margin-top:16px;">You’re receiving this because you subscribed to Mission Control alerts.</p>
+  </div>`;
+
+  const res = await fetch(`${REGION}/emails`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: RESEND_FROM,
+      to: [p.to],
+      subject,
+      html,
+    }),
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Resend error ${res.status}: ${txt}`);
+  }
+
+  const json = await res.json();
+  return json;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
+  // Require Supabase JWT by default (internal invocation). Remove if you want it public.
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!auth.startsWith("Bearer ")) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  const raw = await req.text();
+  let payload: Payload | null = null;
   try {
-    const body: AlertPayload = await req.json();
+    payload = JSON.parse(raw || "{}");
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
 
-    if (!body.monitorId || !body.monitorName || !body.monitorUrl) {
-      return new Response(JSON.stringify({ error: "Missing fields" }), {
-        status: 400,
-      });
-    }
+  console.log("send-alert-email received:", payload); // You’ll see this in Logs Explorer
 
-    // Env vars
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const resend = new Resend(resendApiKey);
-
-    // Get user email from monitor’s owner
-    const { data: monitor, error: monitorErr } = await supabase
-      .from("monitors")
-      .select("id, user_id")
-      .eq("id", body.monitorId)
-      .single();
-
-    if (monitorErr || !monitor) {
-      console.error("❌ Monitor lookup failed:", monitorErr);
-      return new Response(JSON.stringify({ error: "Monitor not found" }), {
-        status: 404,
-      });
-    }
-
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("id", monitor.user_id)
-      .single();
-
-    if (profileErr || !profile?.email) {
-      console.error("❌ Profile lookup failed:", profileErr);
-      return new Response(JSON.stringify({ error: "No recipient" }), {
-        status: 404,
-      });
-    }
-
-    const toEmail = profile.email;
-
-    // Build email content
-    const subject = `🚨 ${body.monitorName} is DOWN`;
-    const message = `
-      <h2>Alert: ${body.monitorName} is offline</h2>
-      <p><strong>URL:</strong> ${body.monitorUrl}</p>
-      <p><strong>Error:</strong> ${body.errorMessage || "Unknown"}</p>
-      ${
-        body.statusCode
-          ? `<p><strong>Status Code:</strong> ${body.statusCode}</p>`
-          : ""
-      }
-      <p><strong>Time:</strong> ${new Date().toISOString()}</p>
-    `;
-
-    // Try sending via Resend
-    let sendSuccess = false;
-    let sendError: string | null = null;
-
-    try {
-      await resend.emails.send({
-        from: "alerts@yourdomain.com", // ✅ Replace with your verified sender in Resend
-        to: toEmail,
-        subject,
-        html: message,
-      });
-      sendSuccess = true;
-    } catch (err: any) {
-      console.error("❌ Resend error:", err);
-      sendError = err.message || "Unknown error";
-    }
-
-    // Log into alert_events table
-    await supabase.from("alert_events").insert({
-      monitor_id: body.monitorId,
-      recipient_email: toEmail,
-      sent_at: new Date().toISOString(),
-      success: sendSuccess,
-      error_message: sendError,
-    });
-
-    if (!sendSuccess) {
-      return new Response(JSON.stringify({ error: "Email send failed" }), {
-        status: 500,
-      });
-    }
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err: any) {
-    console.error("❌ Handler error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-    });
+  try {
+    const result = await sendEmail(payload as Payload);
+    return new Response(JSON.stringify({ ok: true, result }), { status: 200 });
+  } catch (e) {
+    console.error("send-email failed:", e);
+    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
   }
 });

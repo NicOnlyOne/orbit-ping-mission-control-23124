@@ -1,0 +1,7 @@
+{
+  "imports": {},
+  "tasks": {},
+  "deploy": {
+    "verify_jwt": true
+  }
+}
