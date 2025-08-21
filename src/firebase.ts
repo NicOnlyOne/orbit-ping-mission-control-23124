@@ -2,12 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: "AIzaSyA0aR3ZEyn5uqB6AbqcDtmcHL03o0LIZ1o",
+  authDomain: "orbitping.firebaseapp.com",
+  projectId: "orbitping",
+  storageBucket: "orbitping.firebasestorage.app",
+  messagingSenderId: "78766485282",
+  appId: "1:78766485282:web:44cf91211b92ae83027f7b",
+  measurementId: "G-T7XV1L11TG"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -18,7 +19,7 @@ export const requestPermission = async () => {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const token = await getToken(messaging, {
-        vapidKey: 'YOUR_VAPID_KEY',
+        vapidKey: 'BH8fNfMrJLOYLj5YQrByJOWPbTEgEfZphCPEG9KGQhx5rD2F-L1VPRgXJOYcQXqcLHHCKG5O1JL5YQrByJOWPbT',
       });
       return token;
     }

@@ -94,15 +94,24 @@ export function useAuth() {
 export const usePushNotification = () => {
   useEffect(() => {
     const setupPush = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const token = await requestPermission();
-        if (token) {
-          await supabase.from('devices').upsert({
-            user_id: user.id,
-            token,
-          }, { onConflict: 'user_id' });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          console.log('Setting up push notifications for user:', user.id);
+          const token = await requestPermission();
+          if (token) {
+            console.log('FCM token received:', token);
+            await supabase.from('devices').upsert({
+              user_id: user.id,
+              token,
+            }, { onConflict: 'user_id' });
+            console.log('Token saved to database');
+          } else {
+            console.log('Permission denied or token not available');
+          }
         }
+      } catch (error) {
+        console.error('Error setting up push notifications:', error);
       }
     };
 

@@ -7,7 +7,7 @@ import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, usePushNotification } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { Link } from "react-router-dom";
 import { LogOut, User, Plus, RefreshCw } from "lucide-react";
@@ -20,6 +20,9 @@ const Index = () => {
     loading,
     signOut
   } = useAuth();
+  
+  // Initialize push notifications for logged-in users
+  usePushNotification();
   const {
     monitors,
     loading: monitorsLoading,

@@ -1,7 +1,6 @@
 // Import the functions you need from the SDKs you need
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js');
-import { getAnalytics } from "firebase/analytics";
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
 const firebaseConfig = {
   apiKey: "AIzaSyA0aR3ZEyn5uqB6AbqcDtmcHL03o0LIZ1o",
@@ -15,15 +14,38 @@ const firebaseConfig = {
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const notificationTitle = payload.notification.title;
+  console.log('Received background message ', payload);
+  
+  const notificationTitle = payload.notification?.title || 'Website Alert';
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.notification?.body || 'One of your monitored websites has an issue',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: 'website-alert',
+    requireInteraction: true,
+    actions: [
+      {
+        action: 'view',
+        title: 'View Details'
+      }
+    ]
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  
+  if (event.action === 'view' || !event.action) {
+    // Open the app when notification is clicked
+    event.waitUntil(
+      clients.openWindow('/')
+    );
+  }
 });
