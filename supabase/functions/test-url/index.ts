@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Types
 interface TestUrlRequest {
-  url?: string;
+  url: string;
   monitorId?: string;
   forceAlert?: boolean;
 }
@@ -16,19 +16,7 @@ interface TestResult {
 
 Deno.serve(async (req) => {
   try {
-    // ✅ Safe JSON parse (empty body won't crash)
-    let url: string | undefined;
-    let monitorId: string | undefined;
-    let forceAlert: boolean | undefined;
-
-    try {
-      const body: TestUrlRequest = await req.json();
-      url = body.url;
-      monitorId = body.monitorId;
-      forceAlert = body.forceAlert;
-    } catch {
-      console.log("ℹ️ No JSON body provided, continuing without it");
-    }
+    const { url, monitorId, forceAlert }: TestUrlRequest = await req.json();
 
     if (!url) {
       return new Response(JSON.stringify({ error: "URL is required" }), {
@@ -70,8 +58,14 @@ Deno.serve(async (req) => {
     let testResult: TestResult;
 
     try {
-      const response = await fetch(url, { method: "GET" });
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "User-Agent": "OrbitPingBot/1.0", // 👈 important for some servers
+        },
+      });
       const responseTime = performance.now() - start;
+
       if (!response.ok) {
         testResult = {
           status: "offline",
@@ -136,23 +130,27 @@ Deno.serve(async (req) => {
 
     if (shouldSendEmail && monitorId && monitorRow) {
       try {
-        // Instead of building with .functions.supabase.co
-          const functionsUrl = `${supabaseUrl}/functions/v1`;
+        const alertUrl =
+          "https://fvbwalvidzomwmcijxww.supabase.co/functions/v1/send-alert-email";
 
-          const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceRoleKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              monitorId,
-              monitorName: monitorRow.name,
-              monitorUrl: monitorRow.url,
-              errorMessage: testResult.errorMessage,
-              statusCode: testResult.statusCode || undefined,
-            }),
-          });
+        console.log("📨 Sending alert to:", alertUrl);
+
+        const alertResponse = await fetch(alertUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            monitorId,
+            monitorName: monitorRow.name,
+            monitorUrl: monitorRow.url,
+            errorMessage: testResult.errorMessage,
+            statusCode: testResult.statusCode || undefined,
+          }),
+        });
+
+        console.log("📨 Alert response status:", alertResponse.status);
 
         if (!alertResponse.ok) {
           const alertError = await alertResponse.text();
@@ -160,7 +158,6 @@ Deno.serve(async (req) => {
         } else {
           console.log("✅ Alert email triggered");
 
-          // update last_alert_sent_at
           const { error: updateErr } = await supabaseService
             .from("monitors")
             .update({ last_alert_sent_at: now.toISOString() })
