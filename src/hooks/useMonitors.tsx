@@ -127,7 +127,8 @@ export function useMonitors() {
       const { data, error } = await supabase.functions.invoke('test-url', {
         body: {
           url: monitor.url,
-          monitorId: monitorId
+          monitorId: monitorId,
+          forceAlert: true, // 👈 ensures email is sent if result is offline
         }
       });
 
