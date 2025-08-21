@@ -4,7 +4,6 @@ import { StatusIndicator } from "./StatusIndicator";
 import { MonitoringIntervalSlider } from "./MonitoringIntervalSlider";
 import { cn } from "@/lib/utils";
 import { ExternalLink, RefreshCw, Trash2, Settings } from "lucide-react";
-import { testMonitor } from "@/lib/api"; // add this import at the top
 import { useState } from "react";
 
 interface MissionCardProps {
@@ -143,14 +142,7 @@ export const MissionCard = ({
               variant="satellite" 
               size="sm" 
               className="flex-1"
-              onClick={async () => {
-    try {
-      const result = await testMonitor(monitor);
-      console.log("✅ Test result:", result);
-    } catch (err) {
-      console.error("❌ Failed to test monitor:", err);
-    }
-  }}
+              onClick={onTest}
               disabled={status === 'checking'}
             >
               {status === 'checking' ? (
