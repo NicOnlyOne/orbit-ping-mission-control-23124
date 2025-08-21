@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     if (shouldSendEmail && monitorId && monitorRow) {
       try {
         // Instead of building with .functions.supabase.co
-          const functionsUrl = `${supabaseUrl}/functions/v1`;
+          const functionsUrl = `https://fvbwalvidzomwmcijxww.supabase.co/functions/v1/send-alert-email`;
 
           const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
             method: "POST",
