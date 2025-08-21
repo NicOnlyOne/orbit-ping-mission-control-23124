@@ -1,9 +1,8 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Types
 interface TestUrlRequest {
-  url: string;
+  url?: string;
   monitorId?: string;
   forceAlert?: boolean;
 }
@@ -17,7 +16,19 @@ interface TestResult {
 
 Deno.serve(async (req) => {
   try {
-    const { url, monitorId, forceAlert }: TestUrlRequest = await req.json();
+    // ✅ Safe JSON parse (empty body won't crash)
+    let url: string | undefined;
+    let monitorId: string | undefined;
+    let forceAlert: boolean | undefined;
+
+    try {
+      const body: TestUrlRequest = await req.json();
+      url = body.url;
+      monitorId = body.monitorId;
+      forceAlert = body.forceAlert;
+    } catch {
+      console.log("ℹ️ No JSON body provided, continuing without it");
+    }
 
     if (!url) {
       return new Response(JSON.stringify({ error: "URL is required" }), {
@@ -97,11 +108,14 @@ Deno.serve(async (req) => {
       });
 
       // Update monitor row
-      await supabaseService.from("monitors").update({
-        status: testResult.status,
-        last_checked_at: new Date().toISOString(),
-        last_response_time: testResult.responseTime,
-      }).eq("id", monitorId);
+      await supabaseService
+        .from("monitors")
+        .update({
+          status: testResult.status,
+          last_checked_at: new Date().toISOString(),
+          last_response_time: testResult.responseTime,
+        })
+        .eq("id", monitorId);
     }
 
     // Alert logic
@@ -122,13 +136,17 @@ Deno.serve(async (req) => {
 
     if (shouldSendEmail && monitorId && monitorRow) {
       try {
-        const functionsUrl =
-          `https://${new URL(supabaseUrl).hostname.replace(".supabase.co", ".functions.supabase.co")}`;
+        const functionsUrl = `https://${new URL(supabaseUrl).hostname.replace(
+          ".supabase.co",
+          ".functions.supabase.co",
+        )}`;
+
+        console.log("🚨 Website is down, calling send-alert-email…");
 
         const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${serviceRoleKey}`,
+            Authorization: `Bearer ${serviceRoleKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
