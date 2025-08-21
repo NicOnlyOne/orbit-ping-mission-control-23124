@@ -5,11 +5,3 @@ verify_jwt = false
 
 [functions.send-alert-email]
 verify_jwt = false
-
-# Optional: confirm the function exists
-supabase functions list --project-ref fvbwalvidzomwmcijxww
-
-# Deploy (picks up supabase/config.toml)
-supabase functions deploy send-alert-email \
-  --project-ref fvbwalvidzomwmcijxww \
-  --region eu-west-3
