@@ -118,10 +118,10 @@ Deno.serve(async (req) => {
       console.log(`💾 Updating monitor ${monitorId} for user ${user.id}`);
 
       try {
-        // Verify monitor ownership via RLS-enabled client
+        // Verify monitor ownership and get previous status via RLS-enabled client
         const { data: monitorRow, error: monitorFetchError } = await supabaseAuthed
           .from('monitors')
-          .select('id, user_id')
+          .select('id, user_id, status, name, url')
           .eq('id', monitorId)
           .single();
 
@@ -132,6 +132,10 @@ Deno.serve(async (req) => {
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
+
+        const previousStatus = monitorRow.status;
+        const wasOnline = previousStatus === 'online';
+        const isNowOffline = testResult.status === 'offline';
 
         // Update the monitor using the authed client (RLS enforced)
         const { error: updateError } = await supabaseAuthed
@@ -164,6 +168,37 @@ Deno.serve(async (req) => {
           console.error('❌ Error inserting check record:', checkError);
         } else {
           console.log('✅ Check record added successfully');
+        }
+
+        // Send alert email if website went from online to offline
+        if (wasOnline && isNowOffline) {
+          console.log('🚨 Website went down, sending alert email...');
+          
+          try {
+            const alertResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-alert-email`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                monitorId,
+                monitorName: monitorRow.name,
+                monitorUrl: monitorRow.url,
+                errorMessage: testResult.errorMessage,
+                statusCode: testResult.statusCode || undefined,
+              }),
+            });
+
+            if (!alertResponse.ok) {
+              const alertError = await alertResponse.text();
+              console.error('❌ Failed to send alert email:', alertError);
+            } else {
+              console.log('✅ Alert email sent successfully');
+            }
+          } catch (emailError) {
+            console.error('❌ Error sending alert email:', emailError);
+          }
         }
       } catch (dbError) {
         console.error('❌ Database operation failed:', dbError);
