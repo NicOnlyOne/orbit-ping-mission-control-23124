@@ -1,41 +1,52 @@
-// supabase/functions/send-alert-email/index.ts
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+// Edge Function: send-alert-email
+// Receives payload from test-url and sends an email via Resend.
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const RESEND_FROM = Deno.env.get("RESEND_FROM") ?? "Mission Control <alerts@your-domain>";
-const REGION = Deno.env.get("RESEND_API_BASE") ?? "https://api.resend.com"; // set EU base if needed
+// This function expects secrets:
+// - RESEND_API_KEY
+// - RESEND_FROM (e.g., "Mission Control <alerts@your-domain>")
 
-type Payload = {
-  type: "down" | "up";
-  to: string | null | undefined;
-  monitor: { id: string; name?: string | null; url: string };
-  context?: Record<string, unknown>;
+type AlertPayload = {
+  type: "DOWN" | "UP";
+  monitor: { id: string; name: string; url: string };
+  to: string;
+  probe?: { ok: boolean; status: number; ms: number; error?: string };
+  incident_id?: string | null;
+  occurred_at?: string;
 };
 
-async function sendEmail(p: Payload) {
-  if (!RESEND_API_KEY) throw new Error("Missing RESEND_API_KEY");
-  if (!p.to) throw new Error("Missing recipient email 'to'");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+const RESEND_FROM = Deno.env.get("RESEND_FROM")!;
+const RESEND_BASE = Deno.env.get("RESEND_API_BASE") || "https://api.resend.com";
 
-  const subject =
-    p.type === "down"
-      ? `Blackout detected: ${p.monitor.name ?? p.monitor.url}`
-      : `Orbit stable again: ${p.monitor.name ?? p.monitor.url}`;
+function subjectFor(p: AlertPayload) {
+  return p.type === "DOWN"
+    ? `ALERT: ${p.monitor.name} is DOWN`
+    : `RESOLVED: ${p.monitor.name} is back UP`;
+}
 
-  const html = `
-  <div style="font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e2e8f0;background:#0b1020;padding:24px;">
-    <h1 style="margin:0 0 12px;color:#93c5fd;">Orbit Ping — Mission Control</h1>
-    <p style="margin:0 0 8px;">Monitor: <strong>${p.monitor.name ?? p.monitor.url}</strong></p>
-    <p style="margin:0 0 8px;">URL: <a style="color:#93c5fd" href="${p.monitor.url}">${p.monitor.url}</a></p>
-    <p style="margin:0 0 8px;">Event: <strong>${p.type === "down" ? "Blackout (DOWN)" : "Recovered (UP)"}</strong></p>
-    <pre style="white-space:pre-wrap;background:#0f172a;color:#cbd5e1;padding:12px;border-radius:8px;">${JSON.stringify(
-      p.context ?? {},
-      null,
-      2,
-    )}</pre>
-    <p style="margin-top:16px;">You’re receiving this because you subscribed to Mission Control alerts.</p>
+function htmlFor(p: AlertPayload) {
+  const probe = p.probe;
+  const when = p.occurred_at ?? new Date().toISOString();
+  const statusLine =
+    p.type === "DOWN"
+      ? `Service appears DOWN (HTTP ${probe?.status ?? "—"}).`
+      : `Service appears UP (HTTP ${probe?.status ?? "—"}).`;
+  const err = probe?.error ? `<pre style="white-space:pre-wrap">${probe.error}</pre>` : "";
+  return `
+  <div style="font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;padding:16px">
+    <h2 style="margin:0 0 8px">${subjectFor(p)}</h2>
+    <p style="margin:4px 0"><strong>URL:</strong> <a href="${p.monitor.url}">${p.monitor.url}</a></p>
+    <p style="margin:4px 0"><strong>Time:</strong> ${when}</p>
+    <p style="margin:8px 0">${statusLine} Response time: ${probe?.ms ?? "—"} ms.</p>
+    ${err}
+    ${p.incident_id ? `<p style="margin:8px 0"><strong>Incident:</strong> ${p.incident_id}</p>` : ""}
+    <hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb" />
+    <p style="color:#6b7280;font-size:12px">You are receiving this because you monitor ${p.monitor.name}.</p>
   </div>`;
+}
 
-  const res = await fetch(`${REGION}/emails`, {
+async function sendEmail(p: AlertPayload) {
+  const res = await fetch(`${RESEND_BASE}/emails`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
@@ -44,42 +55,49 @@ async function sendEmail(p: Payload) {
     body: JSON.stringify({
       from: RESEND_FROM,
       to: [p.to],
-      subject,
-      html,
+      subject: subjectFor(p),
+      html: htmlFor(p),
     }),
   });
-
   if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Resend error ${res.status}: ${txt}`);
+    const text = await res.text().catch(() => "");
+    throw new Error(`Resend API error ${res.status}: ${text.slice(0, 400)}`);
   }
-
-  const json = await res.json();
-  return json;
+  return await res.json().catch(() => ({}));
 }
 
-serve(async (req) => {
-  // Require Supabase JWT by default (internal invocation). Remove if you want it public.
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
-  const raw = await req.text();
-  let payload: Payload | null = null;
+Deno.serve(async (req) => {
+  let payload: AlertPayload | null = null;
   try {
-    payload = JSON.parse(raw || "{}");
+    payload = (await req.json()) as AlertPayload;
   } catch {
-    return new Response("Invalid JSON", { status: 400 });
+    return new Response("Invalid JSON body", { status: 400 });
   }
 
-  console.log("send-alert-email received:", payload); // You’ll see this in Logs Explorer
+  // Loud receipt logs so you can see activity immediately
+  console.log("send-alert-email received:", {
+    type: payload?.type,
+    monitor: payload?.monitor?.id,
+    to: payload?.to,
+  });
+
+  if (!RESEND_API_KEY || !RESEND_FROM) {
+    console.error("Missing RESEND secrets");
+    return new Response("Server misconfigured (RESEND secrets)", { status: 500 });
+    }
+
+  if (!payload?.to || !payload?.monitor?.url || !payload?.type) {
+    return new Response("Missing required fields", { status: 400 });
+  }
 
   try {
-    const result = await sendEmail(payload as Payload);
-    return new Response(JSON.stringify({ ok: true, result }), { status: 200 });
-  } catch (e) {
-    console.error("send-email failed:", e);
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), { status: 500 });
+    const out = await sendEmail(payload);
+    console.log("Resend OK:", out);
+    return new Response(JSON.stringify({ ok: true, id: out?.id ?? null }), {
+      headers: { "content-type": "application/json" },
+    });
+  } catch (e: any) {
+    console.error("Email send failed:", e?.message || e);
+    return new Response(`Email send failed: ${e?.message || e}`, { status: 500 });
   }
 });

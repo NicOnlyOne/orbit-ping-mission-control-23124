@@ -1,202 +1,246 @@
-// supabase/functions/test-url/index.ts
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+// deno-lint-ignore-file no-explicit-any
+// Edge Function: test-url
+// - Checks one or many monitors
+// - On transition, invokes send-alert-email with payload
+
+// Deno-friendly imports
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const CRON_SECRET = Deno.env.get("CRON_SECRET"); // optional if triggered by scheduler
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  global: { headers: { "X-Client-Info": "orbit-ping/test-url" } },
-});
+type Monitor = {
+  id: string;
+  url: string;
+  status?: "UP" | "DOWN";
+  failure_threshold?: number | null;
+  recovery_threshold?: number | null;
+  consecutive_failures?: number | null;
+  consecutive_successes?: number | null;
+  email_to?: string | null;
+  user_id?: string | null;
+  name?: string | null;
+};
 
-const Input = z.object({
-  monitor_id: z.string().uuid().optional(),
-  // or batch run: no body, the function will pick due monitors by next_check_at/interval
-});
+type Incident = {
+  id: string;
+  monitor_id: string;
+  opened_at: string;
+  resolved_at?: string | null;
+  last_error?: string | null;
+};
 
-async function invokeSendEmail(payload: any) {
-  // Use internal function invoke so JWT is handled; don't call the public URL.
+const DEFAULT_FAILURE_THRESHOLD = 3;
+const DEFAULT_RECOVERY_THRESHOLD = 2;
+const TIMEOUT_MS = 15000;
+
+function withTimeout(ms: number) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(id) };
+}
+
+async function ping(url: string) {
+  const t0 = Date.now();
+  const ctl = withTimeout(TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { method: "GET", signal: ctl.signal });
+    const ok = res.ok;
+    const status = res.status;
+    const text = ok ? "" : await res.text().catch(() => "");
+    return { ok, status, ms: Date.now() - t0, error: ok ? undefined : `HTTP ${status} ${text?.slice(0, 200)}` };
+  } catch (e: any) {
+    return { ok: false, status: 0, ms: Date.now() - t0, error: e?.message || "fetch_error" };
+  } finally {
+    ctl.clear();
+  }
+}
+
+async function getRecipientEmail(
+  supabase: ReturnType<typeof createClient>,
+  m: Monitor
+): Promise<string | null> {
+  if (m.email_to) return m.email_to;
+  if (!m.user_id) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", m.user_id)
+    .maybeSingle();
+  if (error) {
+    console.warn("profiles lookup error", error);
+    return null;
+  }
+  return data?.email ?? null;
+}
+
+async function openIncident(
+  supabase: ReturnType<typeof createClient>,
+  monitor_id: string,
+  last_error?: string
+): Promise<Incident | null> {
+  const { data, error } = await supabase
+    .from("incidents")
+    .insert({ monitor_id, opened_at: new Date().toISOString(), last_error })
+    .select()
+    .single();
+  if (error) {
+    console.error("openIncident error", error);
+    return null;
+  }
+  return data as Incident;
+}
+
+async function closeOpenIncident(
+  supabase: ReturnType<typeof createClient>,
+  monitor_id: string
+): Promise<Incident | null> {
+  // Close the most recent open incident (resolved_at null)
+  const { data: openInc, error: qErr } = await supabase
+    .from("incidents")
+    .select("*")
+    .eq("monitor_id", monitor_id)
+    .is("resolved_at", null)
+    .order("opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (qErr) {
+    console.warn("query open incident failed", qErr);
+    return null;
+  }
+  if (!openInc) return null;
+  const { data, error } = await supabase
+    .from("incidents")
+    .update({ resolved_at: new Date().toISOString() })
+    .eq("id", openInc.id)
+    .select()
+    .single();
+  if (error) {
+    console.error("closeIncident error", error);
+    return null;
+  }
+  return data as Incident;
+}
+
+async function invokeSendEmail(
+  supabase: ReturnType<typeof createClient>,
+  payload: any
+) {
+  // Using functions.invoke ensures proper Authorization so verify_jwt can remain true.
   const { data, error } = await supabase.functions.invoke("send-alert-email", {
     body: payload,
   });
   if (error) {
-    console.error("invoke send-alert-email error:", error);
+    console.error("invoke send-alert-email failed", error);
   } else {
-    console.log("send-alert-email invoked:", data);
+    console.log("send-alert-email invoked:", data ?? "ok");
   }
 }
 
-async function checkOneMonitor(m: any) {
-  const started = Date.now();
-  let ok = false;
-  let status = 0;
-  let text: string | null = null;
-  let reason = "";
+Deno.serve(async (req) => {
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
+    auth: { persistSession: false },
+  });
 
-  try {
-    const res = await fetch(m.url, {
-      method: "GET",
-      redirect: "manual",
-      headers: { "user-agent": "OrbitPing/1.0 (+https://orbit)" },
-    });
-    status = res.status;
-    text = await res.text();
-    const expected = m.expected_status ?? 200;
-    ok = status === expected || (status >= 200 && status < 300 && expected === 200);
-    reason = ok ? `HTTP ${status}` : `Unexpected status ${status}`;
-  } catch (e) {
-    ok = false;
-    reason = `Fetch error: ${(e as Error).message}`;
-  }
+  const body = await req.json().catch(() => ({}));
+  const targetMonitorId: string | undefined = body?.monitor_id;
 
-  const durationMs = Date.now() - started;
-
-  // Update counters and status, determine transitions
-  let nextStatus = ok ? "up" : "down";
-  let consecutive_failures = m.consecutive_failures ?? 0;
-  let consecutive_successes = m.consecutive_successes ?? 0;
-
-  if (ok) {
-    consecutive_successes += 1;
-    consecutive_failures = 0;
+  // Load monitors (single or all active)
+  let monitors: Monitor[] = [];
+  if (targetMonitorId) {
+    const { data, error } = await supabase
+      .from("monitors")
+      .select("*")
+      .eq("id", targetMonitorId);
+    if (error) return new Response(error.message, { status: 500 });
+    monitors = data as Monitor[];
   } else {
-    consecutive_failures += 1;
-    consecutive_successes = 0;
-  }
-
-  const failure_threshold = m.failure_threshold ?? 3;
-  const recovery_threshold = m.recovery_threshold ?? 2;
-
-  let transitionedToDown = false;
-  let transitionedToUp = false;
-
-  if (m.status !== "down" && !ok && consecutive_failures >= failure_threshold) {
-    transitionedToDown = true;
-    nextStatus = "down";
-  }
-  if (m.status === "down" && ok && consecutive_successes >= recovery_threshold) {
-    transitionedToUp = true;
-    nextStatus = "up";
-  }
-
-  // Persist monitor counters + status
-  const { error: upErr } = await supabase
-    .from("monitors")
-    .update({
-      last_check_at: new Date().toISOString(),
-      status: nextStatus,
-      consecutive_failures,
-      consecutive_successes,
-      last_latency_ms: durationMs,
-    })
-    .eq("id", m.id);
-
-  if (upErr) console.error("update monitor error:", upErr);
-
-  // Open/resolve incident rows minimally (optional; adapt to your schema)
-  if (transitionedToDown) {
-    const { data: incident, error: incErr } = await supabase
-      .from("incidents")
-      .insert({
-        monitor_id: m.id,
-        opened_at: new Date().toISOString(),
-        last_change_reason: reason,
-      })
-      .select("id")
-      .single();
-    if (incErr) console.error("insert incident error:", incErr);
-
-    // Invoke email sender
-    await invokeSendEmail({
-      type: "down",
-      monitor: {
-        id: m.id,
-        name: m.name,
-        url: m.url,
-      },
-      to: m.email_to_notify, // field must exist in your monitors or profile table
-      context: { status, reason, durationMs },
-    });
-  } else if (transitionedToUp) {
-    // Resolve the latest open incident
-    const { data: lastOpen, error: findErr } = await supabase
-      .from("incidents")
-      .select("id")
-      .eq("monitor_id", m.id)
-      .is("resolved_at", null)
-      .order("opened_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (findErr) console.error("find incident error:", findErr);
-    if (lastOpen) {
-      const { error: resErr } = await supabase
-        .from("incidents")
-        .update({ resolved_at: new Date().toISOString(), last_change_reason: reason })
-        .eq("id", lastOpen.id);
-      if (resErr) console.error("resolve incident error:", resErr);
-    }
-
-    await invokeSendEmail({
-      type: "up",
-      monitor: {
-        id: m.id,
-        name: m.name,
-        url: m.url,
-      },
-      to: m.email_to_notify,
-      context: { status, reason, durationMs },
-    });
-  }
-
-  return { ok, status, reason, durationMs, transitionedToDown, transitionedToUp };
-}
-
-serve(async (req) => {
-  // Optional: protect if called by external cron
-  if (CRON_SECRET) {
-    const s = req.headers.get("x-cron-secret");
-    if (s !== CRON_SECRET) return new Response("forbidden", { status: 403 });
-  }
-
-  if (req.method === "POST") {
-    const txt = await req.text();
-    const body = txt ? JSON.parse(txt) : {};
-    const parse = Input.safeParse(body);
-    if (!parse.success) {
-      return new Response(JSON.stringify({ error: parse.error.flatten() }), { status: 400 });
-    }
-
-    if (parse.data.monitor_id) {
-      const { data: m, error } = await supabase.from("monitors").select("*").eq("id", parse.data.monitor_id).single();
-      if (error || !m) return new Response("monitor not found", { status: 404 });
-      const result = await checkOneMonitor(m);
-      return new Response(JSON.stringify({ result }), { status: 200 });
-    }
-  }
-
-  // Batch mode: check due monitors (simple example: enabled and status known)
-  const { data: monitors, error } = await supabase
-    .from("monitors")
-    .select("*")
-    .eq("enabled", true)
-    .limit(20); // keep it small per run
-
-  if (error) {
-    console.error("fetch monitors error:", error);
-    return new Response("error", { status: 500 });
+    const { data, error } = await supabase
+      .from("monitors")
+      .select("*")
+      .neq("url", null);
+    if (error) return new Response(error.message, { status: 500 });
+    monitors = data as Monitor[];
   }
 
   const results: any[] = [];
-  for (const m of monitors ?? []) {
-    try {
-      const r = await checkOneMonitor(m);
-      results.push({ id: m.id, ...r });
-    } catch (e) {
-      console.error("checkOneMonitor error:", e);
+
+  for (const m of monitors) {
+    const prevStatus = (m.status ?? "UP") as "UP" | "DOWN";
+    const failureThreshold = m.failure_threshold ?? DEFAULT_FAILURE_THRESHOLD;
+    const recoveryThreshold = m.recovery_threshold ?? DEFAULT_RECOVERY_THRESHOLD;
+    let cf = m.consecutive_failures ?? 0;
+    let cs = m.consecutive_successes ?? 0;
+
+    const probe = await ping(m.url);
+    let nextStatus: "UP" | "DOWN" = prevStatus;
+
+    if (probe.ok) {
+      cs += 1;
+      cf = 0;
+      if (prevStatus === "DOWN" && cs >= recoveryThreshold) {
+        nextStatus = "UP";
+      }
+    } else {
+      cf += 1;
+      cs = 0;
+      if (prevStatus === "UP" && cf >= failureThreshold) {
+        nextStatus = "DOWN";
+      }
     }
+
+    // Persist counters and status
+    const updates: any = {
+      consecutive_failures: cf,
+      consecutive_successes: cs,
+      status: nextStatus,
+      updated_at: new Date().toISOString(),
+    };
+    const { error: upErr } = await supabase
+      .from("monitors")
+      .update(updates)
+      .eq("id", m.id);
+    if (upErr) console.error("update monitor failed", m.id, upErr);
+
+    const transitioned = nextStatus !== prevStatus;
+    let incidentOpened: Incident | null = null;
+    let incidentClosed: Incident | null = null;
+
+    if (transitioned && nextStatus === "DOWN") {
+      incidentOpened = await openIncident(supabase, m.id, probe.error);
+    } else if (transitioned && nextStatus === "UP") {
+      incidentClosed = await closeOpenIncident(supabase, m.id);
+    }
+
+    // Only email on transitions
+    if (transitioned) {
+      const to = await getRecipientEmail(supabase, m);
+      if (!to) {
+        console.warn("No recipient email for monitor", m.id);
+      } else {
+        await invokeSendEmail(supabase, {
+          type: nextStatus === "DOWN" ? "DOWN" : "UP",
+          monitor: { id: m.id, name: m.name ?? m.url, url: m.url },
+          to,
+          probe: { ok: probe.ok, status: probe.status, ms: probe.ms, error: probe.error },
+          incident_id: incidentOpened?.id ?? incidentClosed?.id ?? null,
+          occurred_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    results.push({
+      monitor_id: m.id,
+      prevStatus,
+      nextStatus,
+      transitioned,
+      http_status: probe.status,
+      ms: probe.ms,
+      error: probe.error,
+    });
   }
 
-  return new Response(JSON.stringify({ checked: results.length, results }), { status: 200 });
+  return new Response(JSON.stringify({ ok: true, results }, null, 2), {
+    headers: { "content-type": "application/json" },
+  });
 });
