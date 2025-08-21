@@ -34,17 +34,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Sending alert email for monitor:', monitorId);
 
-    // Get monitor details and user email
-    const { data: monitor, error: monitorError } = await supabaseServiceRole
+    // Get monitor details and resolve user email via Auth Admin API
+    const { data: monitorRow, error: monitorError } = await supabaseServiceRole
       .from('monitors')
-      .select(`
-        *,
-        profiles:user_id (email, full_name, first_name, last_name)
-      `)
+      .select('id, user_id, name, url')
       .eq('id', monitorId)
       .single();
 
-    if (monitorError || !monitor) {
+    if (monitorError || !monitorRow) {
       console.error('Failed to fetch monitor:', monitorError);
       return new Response(
         JSON.stringify({ error: 'Monitor not found' }),
@@ -52,17 +49,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const userEmail = monitor.profiles?.email;
-    const userName = monitor.profiles?.full_name || monitor.profiles?.first_name || 'User';
-    
-    if (!userEmail) {
-      console.error('No email found for user');
+    const { data: userData, error: userError } = await supabaseServiceRole.auth.admin.getUserById(monitorRow.user_id);
+    if (userError || !userData?.user?.email) {
+      console.error('Failed to fetch user or email missing:', userError);
       return new Response(
         JSON.stringify({ error: 'User email not found' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const userEmail = userData.user.email as string;
+    const userName = (userData.user.user_metadata?.full_name || userData.user.user_metadata?.first_name || 'User') as string;
     const timestamp = new Date().toLocaleString('en-US', {
       timeZone: 'UTC',
       year: 'numeric',
@@ -118,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "OrbitPing Alerts <alerts@resend.dev>",
+      from: "OrbitPing Alerts <onboarding@resend.dev>",
       to: [userEmail],
       subject: emailSubject,
       html: emailHtml,

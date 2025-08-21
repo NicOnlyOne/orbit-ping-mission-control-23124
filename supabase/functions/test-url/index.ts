@@ -170,10 +170,9 @@ Deno.serve(async (req) => {
           console.log('✅ Check record added successfully');
         }
 
-        // Send alert email if website went from online to offline
-        if (wasOnline && isNowOffline) {
-          console.log('🚨 Website went down, sending alert email...');
-          
+        // Send alert email if website transitioned to offline from any non-offline state
+        if (previousStatus !== 'offline' && isNowOffline) {
+          console.log('🚨 Website went down (', previousStatus, '→ offline ), sending alert email...');
           try {
             const alertResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-alert-email`, {
               method: 'POST',
@@ -189,7 +188,6 @@ Deno.serve(async (req) => {
                 statusCode: testResult.statusCode || undefined,
               }),
             });
-
             if (!alertResponse.ok) {
               const alertError = await alertResponse.text();
               console.error('❌ Failed to send alert email:', alertError);
