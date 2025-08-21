@@ -136,27 +136,23 @@ Deno.serve(async (req) => {
 
     if (shouldSendEmail && monitorId && monitorRow) {
       try {
-        const functionsUrl = `https://${new URL(supabaseUrl).hostname.replace(
-          ".supabase.co",
-          ".functions.supabase.co",
-        )}`;
+        // Instead of building with .functions.supabase.co
+          const functionsUrl = `${supabaseUrl}/functions/v1`;
 
-        console.log("🚨 Website is down, calling send-alert-email…");
-
-        const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${serviceRoleKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            monitorId,
-            monitorName: monitorRow.name,
-            monitorUrl: monitorRow.url,
-            errorMessage: testResult.errorMessage,
-            statusCode: testResult.statusCode || undefined,
-          }),
-        });
+          const alertResponse = await fetch(`${functionsUrl}/send-alert-email`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${serviceRoleKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              monitorId,
+              monitorName: monitorRow.name,
+              monitorUrl: monitorRow.url,
+              errorMessage: testResult.errorMessage,
+              statusCode: testResult.statusCode || undefined,
+            }),
+          });
 
         if (!alertResponse.ok) {
           const alertError = await alertResponse.text();
