@@ -87,12 +87,12 @@ export function useMonitors() {
 
       toast.success(`🚀 Mission "${data.name}" deployed successfully!`);
       
-      // Refresh monitors first so local state contains the new mission
       await fetchMonitors();
       
-      // Test the URL immediately
-      await testMonitor(data.id);
-      
+      // <<< LOVABLE AI FIX #1: Pass the URL directly to testMonitor
+      // This avoids the race condition of trying to fetch it again.
+      await testMonitor(data.id, data.url); 
+
       return data.id;
     } catch (error) {
       console.error('Unexpected error creating monitor:', error);
@@ -102,21 +102,22 @@ export function useMonitors() {
   };
 
   // Test a monitor
-  const testMonitor = async (monitorId: string) => {
+  const testMonitor = async (monitorId: string, url?: string) => {
     try {
-      let monitor = monitors.find(m => m.id === monitorId) as Partial<Monitor> | undefined;
-      if (!monitor) {
-        // Fallback: fetch monitor URL directly from DB in case local state is stale
-        const { data: fallback, error: fetchErr } = await supabase
-          .from('monitors')
-          .select('id, url')
-          .eq('id', monitorId)
-          .single();
-        if (fetchErr || !fallback) {
-          toast.error('Mission not found');
-          return;
+      // <<< LOVABLE AI FIX #2: Prioritize the passed URL
+      // If a URL is provided (like during creation), use it. Otherwise, find it in our state.
+      let monitorUrl = url;
+      if (!monitorUrl) {
+        const monitorInState = monitors.find(m => m.id === monitorId);
+        if (monitorInState) {
+          monitorUrl = monitorInState.url;
         }
-        monitor = fallback as Partial<Monitor>;
+      }
+
+      // If we still couldn't find a URL, we can't proceed.
+      if (!monitorUrl) {
+        toast.error('Mission URL not found. Could not start test.');
+        return;
       }
 
       // Update status to checking
@@ -126,30 +127,28 @@ export function useMonitors() {
 
       const { data, error } = await supabase.functions.invoke('test-url', {
         body: {
-          url: monitor.url,
+          url: monitorUrl, // Use the URL we just determined
           monitorId: monitorId,
-          forceAlert: true, // 👈 ensures email is sent if result is offline
+          forceAlert: true,
         }
       });
 
       if (error) {
         console.error('Error testing URL:', error);
         toast.error(`Mission test failed: ${error.message}`);
-        
-        // Revert status
         setMonitors(prev => prev.map(m => 
           m.id === monitorId ? { ...m, status: 'offline' } : m
         ));
         return;
       }
 
-      // The edge function will update the database, so we need to refresh
-      setTimeout(fetchMonitors, 1000);
-      
-      const statusMessages = {
-        online: '✅ All systems operational!',
-        warning: '⚠️ Slow response detected',
-        offline: '🚨 Mission down! Houston, we have a problem!'
+      // The edge function will update the database, which triggers a realtime refresh via `useEffect`
+      // A small manual refresh can help, but the realtime subscription is the primary mechanism.
+      setTimeout(fetchMonitors, 500);
+
+      const statusMessages: { [key: string]: string } = {
+        UP: '✅ All systems operational!',
+        DOWN: '🚨 Mission down! Houston, we have a problem!'
       };
 
       toast.success(statusMessages[data.status] || 'Test completed');
@@ -157,8 +156,6 @@ export function useMonitors() {
     } catch (error) {
       console.error('Unexpected error testing monitor:', error);
       toast.error('Communication error with mission control');
-      
-      // Revert status
       setMonitors(prev => prev.map(m => 
         m.id === monitorId ? { ...m, status: 'offline' } : m
       ));
@@ -202,9 +199,9 @@ export function useMonitors() {
           table: 'monitors',
           filter: `user_id=eq.${user.id}`
         },
-        () => {
-          // Refresh monitors when any change occurs
-          fetchMonitors();
+        (payload) => {
+          // A small delay helps ensure the DB has settled before we re-fetch.
+          setTimeout(() => fetchMonitors(), 250);
         }
       )
       .subscribe();
@@ -219,27 +216,15 @@ export function useMonitors() {
     fetchMonitors();
   }, [user]);
 
-  // Kick off tests for monitors that haven't been checked yet
+  // Automatic monitoring: run tests at each monitor's interval
   useEffect(() => {
     if (!user || monitors.length === 0) return;
 
-    const uninitialized = monitors.filter(m => !m.last_checked);
-    uninitialized.forEach((m) => {
-      testMonitor(m.id);
-    });
-    // Depend on last_checked to avoid unnecessary repeats
-  }, [user, monitors.map(m => `${m.id}:${m.last_checked ?? ''}`).join('|')]);
-
-  // Automatic monitoring: run tests at each monitor's interval (min 30s, max 60m)
-  useEffect(() => {
-    if (!user || monitors.length === 0) return;
-
-    const timers: number[] = [];
+    const timers: NodeJS.Timeout[] = [];
 
     monitors.forEach((m) => {
       const intervalSec = Math.min(3600, Math.max(30, m.monitoring_interval || 300));
-      const id = window.setInterval(() => {
-        // Avoid stacking tests; if currently checking, skip this tick
+      const id = setInterval(() => {
         if (m.status !== 'checking') {
           testMonitor(m.id);
         }
@@ -267,7 +252,6 @@ export function useMonitors() {
       }
 
       toast.success(`🛰️ Monitoring interval updated successfully`);
-      fetchMonitors();
     } catch (error) {
       console.error('Unexpected error updating interval:', error);
       toast.error('Mission control error updating interval');
