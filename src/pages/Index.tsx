@@ -22,7 +22,7 @@ const Index = () => {
   } = useAuth();
   
   // Initialize push notifications for logged-in users
-  usePushNotification();
+  //usePushNotification();
   const {
     monitors,
     loading: monitorsLoading,
