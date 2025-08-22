@@ -39,8 +39,6 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
 
       if (error) throw error;
 
-      // --- Translation Guide ---
-      // Map the backend's response ('UP'/'DOWN') to what the UI understands ('online'/'offline')
       const mappedResult: TestResult = {
         status: backendResult.status === 'UP' ? 'online' : 'offline',
         responseTime: backendResult.responseTime,
@@ -50,6 +48,9 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       
       setResult(mappedResult);
       setShowConversion(true);
+      
+      // Restore logic to save URL for conversion
+      localStorage.setItem('pending-mission-url', url.trim());
 
     } catch (err: any) {
       console.error("Error testing URL:", err);
@@ -66,17 +67,17 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
 
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {
-      case 'online': return <CheckCircle className="h-6 w-6 text-status-online" />;
-      case 'offline': return <AlertCircle className="h-6 w-6 text-status-offline" />;
-      case 'warning': return <AlertCircle className="h-6 w-6 text-yellow-500" />;
+      case 'online': return <CheckCircle className="h-6 w-6 text-green-500" />;
+      case 'offline': return <AlertCircle className="h-6 w-6 text-red-500" />;
+      case 'warning': return <Clock className="h-6 w-6 text-yellow-500" />;
       default: return null;
     }
   };
 
   const getStatusColor = (status: TestResult['status']) => {
     switch (status) {
-      case 'online': return "text-status-online";
-      case 'offline': return "text-status-offline";
+      case 'online': return "text-green-500";
+      case 'offline': return "text-red-500";
       case 'warning': return "text-yellow-500";
       default: return "";
     }
