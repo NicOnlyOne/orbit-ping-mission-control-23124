@@ -1,83 +1,127 @@
-// supabase/functions/send-alert-email/index.ts (Corrected Final Version)
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// PASTE THIS CORRECTED CODE INTO: supabase/functions/send-alert-email/index.ts
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
+
+// --- Config ---
+const COOLDOWN_MINUTES = 60; // How many minutes to wait before sending another alert for the same site
+const TIMEOUT_MS = 15_000; // 15 seconds
+
+// --- Types ---
+type Monitor = {
+  id: string;
+  name: string;
+  url: string;
+  status: "UP" | "DOWN" | null;
+  last_alert_sent: string | null;
+  notify_email: string | null;
+};
+
+// --- Helper to check a URL ---
+async function probeUrl(url: string) {
+  const startTime = Date.now();
+  try {
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const responseTime = Date.now() - startTime;
+    return {
+      status: response.ok ? "UP" : "DOWN",
+      message: `HTTP ${response.status}`,
+      responseTime
+    } as const;
+  } catch (err) {
+    const responseTime = Date.now() - startTime;
+    return {
+      status: "DOWN",
+      message: err.message,
+      responseTime
+    } as const;
+  }
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+// --- Main Function ---
+Deno.serve(async () => {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // 1. Fetch all monitors
+  const { data: monitors, error: fetchError } = await supabase
+    .from("monitors")
+    .select<"*", Monitor>("id, name, url, status, last_alert_sent, notify_email");
+
+  if (fetchError) {
+    console.error("Error fetching monitors:", fetchError.message);
+    return new Response("Error fetching monitors", { status: 500 });
   }
 
-  try {
-    const { monitor, type, probeResult, to } = await req.json()
+  const now = new Date();
+  
+  // 2. Check each monitor
+  const checkPromises = monitors.map(async (m) => {
+    const probe = await probeUrl(m.url);
 
-    console.log(`📧 Sending ${type} alert for ${monitor.name || monitor.url} to ${to}`)
-
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    if (!resendApiKey) {
-      console.error('❌ RESEND_API_KEY not found')
-      throw new Error('Missing RESEND_API_KEY')
-    }
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Mission Control <onboarding@resend.dev>',
-        to: to,
-        subject: `🚨 Alert: ${monitor.name} is DOWN`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-image: linear-gradient(to top, #30cfd0 0%, #330867 100%); color: white;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="font-size: 32px; margin: 0;">🚀 Mission Control Alert</h1>
-              <p style="font-size: 18px; margin: 10px 0 0 0;">Houston, we have a problem!</p>
-            </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-              <h2 style="color: #ff6b6b; margin-top: 0;">🔴 SERVICE DOWN</h2>
-              <p><strong>Service:</strong> ${monitor.name || monitor.url}</p>
-              <p><strong>URL:</strong> ${monitor.url}</p>
-              <p><strong>Status:</strong> DOWN 🔴</p>
-              ${probeResult.error ? `<p><strong>Error:</strong> ${probeResult.error}</p>` : ''}
-              ${probeResult.status ? `<p><strong>HTTP Status:</strong> ${probeResult.status}</p>` : ''}
-              <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-            </div>
-            <p>Please check your service immediately.</p>
-            <p style="color: rgba(255,255,255,0.7); font-size: 14px; text-align: center;">
-              This alert was sent from Orbit Ping Mission Control 🛰️
-            </p>
-          </div>
-        `,
-      }),
-    })
-
-    const result = await response.json()
-
-    if (!response.ok) {
-      console.error('❌ Resend API error:', result)
-      throw new Error(result.message || `HTTP ${response.status}`)
-    }
-
-    console.log('✅ Email sent successfully:', result)
-
-    return new Response(
-      JSON.stringify({ success: true, result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('❌ send-alert-email error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    if (probe.status === "UP") {
+       // If the site was previously down, mark it as up. Otherwise, just update check time.
+      if (m.status === "DOWN") {
+        console.log(`Monitor ${m.id} (${m.url}) is back UP.`);
       }
-    )
-  }
-})
+      await supabase.from("monitors").update({
+        status: "UP",
+        last_checked: now.toISOString(),
+        response_time: probe.responseTime,
+        error_message: null
+      }).eq("id", m.id);
+    } else {
+      // Monitor is DOWN
+      console.log(`Monitor ${m.id} (${m.url}) is DOWN. Reason: ${probe.message}`);
+      
+      const shouldSendAlert = !m.last_alert_sent || 
+        (new Date().getTime() - new Date(m.last_alert_sent).getTime()) > COOLDOWN_MINUTES * 60 * 1000;
+
+      if (shouldSendAlert) {
+        console.log(`Cooldown passed for ${m.id}. Sending alert.`);
+        
+        // --- Directly Send Email Here ---
+        const resendApiKey = Deno.env.get("RESEND_API_KEY");
+        if (m.notify_email && resendApiKey) {
+          fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify({
+              from: "Mission Control <alerts@lovable.app>",
+              to: [m.notify_email],
+              subject: `🚨 Alert: Your mission "${m.name}" is DOWN`,
+              html: `<p>Commander,</p><p>Our sensors show that your mission <strong>${m.name}</strong> (${m.url}) is unresponsive.</p><p>We will continue to monitor the situation.</p><p>- OrbitPing Mission Control</p>`,
+            }),
+          });
+        }
+        // --- End of Email Logic ---
+
+        // Update status and the alert timestamp
+        await supabase.from("monitors").update({ 
+          status: "DOWN", 
+          last_checked: now.toISOString(),
+          error_message: probe.message,
+          response_time: probe.responseTime,
+          last_alert_sent: now.toISOString() // Mark that we just sent an alert
+        }).eq("id", m.id);
+
+      } else {
+        console.log(`Monitor ${m.id} is down, but within cooldown. Skipping alert.`);
+        // Update status but NOT the alert timestamp
+        await supabase.from("monitors").update({ 
+          status: "DOWN", 
+          last_checked: now.toISOString(),
+          error_message: probe.message,
+          response_time: probe.responseTime
+        }).eq("id", m.id);
+      }
+    }
+  });
+
+  await Promise.all(checkPromises);
+  return new Response("ok", { headers: { "Content-Type": "application/json" } });
+});

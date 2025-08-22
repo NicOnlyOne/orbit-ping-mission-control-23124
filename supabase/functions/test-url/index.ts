@@ -1,124 +1,94 @@
-// supabase/functions/test-url/index.ts
+// PASTE THIS CODE INTO: supabase/functions/test-url/index.ts
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0"
-
-// A helper type to define what our URL check will return
-type ProbeResult = {
-  status: 'UP' | 'DOWN'
-  responseTime: number
-  httpStatus: number | null
-  message: string | null
-}
-
-/**
- * Probes a URL to check its status. This function is designed to never crash.
- * It always returns a ProbeResult object.
- */
-async function probeUrl(url: string, timeout = 15000): Promise<ProbeResult> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeout)
-  const startTime = Date.now()
-
-  try {
-    const response = await fetch(url, { signal: controller.signal, redirect: 'follow' })
-    clearTimeout(timeoutId)
-    const responseTime = Date.now() - startTime
-
-    if (response.ok) {
-      return { status: 'UP', responseTime, httpStatus: response.status, message: response.statusText }
-    } else {
-      // HTTP error (e.g., 404, 500)
-      return { status: 'DOWN', responseTime, httpStatus: response.status, message: `HTTP status ${response.status}` }
-    }
-  } catch (err) {
-    clearTimeout(timeoutId)
-    const responseTime = Date.now() - startTime
-    // Network or other errors
-    const message = err instanceof Error ? err.message : String(err)
-    return { status: 'DOWN', responseTime, httpStatus: null, message }
-  }
-}
-
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+// --- Main Function ---
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const payload = await req.json()
-    const monitorId = payload.monitorId
+    const { monitorId } = await req.json();
+    if (!monitorId) throw new Error("Missing monitorId in request body");
 
-    if (!monitorId) {
-      throw new Error("Missing 'monitorId' in request body.");
-    }
-
-    // Step 1: Create a Supabase client with the service role key
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Step 2: Get the monitor's URL from the database
+    // 1. Get the specific monitor
     const { data: monitor, error: fetchError } = await supabase
       .from("monitors")
-      .select("url")
+      .select("*")
       .eq("id", monitorId)
       .single();
 
-    if (fetchError || !monitor) {
-      throw new Error(`Monitor not found for id: ${monitorId}`);
+    if (fetchError) throw new Error(`Monitor not found: ${fetchError.message}`);
+
+    // 2. Probe the URL
+    const startTime = Date.now();
+    let probe: { status: "UP" | "DOWN"; message: string; responseTime: number };
+
+    try {
+      const response = await fetch(monitor.url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
+      const responseTime = Date.now() - startTime;
+      probe = response.ok 
+        ? { status: "UP", message: `HTTP ${response.status}`, responseTime }
+        : { status: "DOWN", message: `HTTP ${response.status}`, responseTime };
+    } catch (err) {
+      const responseTime = Date.now() - startTime;
+      probe = { status: "DOWN", message: err.message, responseTime };
     }
 
-    // Step 3: Probe the URL
-    const result = await probeUrl(monitor.url);
-    const databaseStatus = result.status; 
-
+    // 3. Update the database
     const updatePayload = {
-      status: databaseStatus, // This will be 'UP' or 'DOWN'
+      status: probe.status,
       last_checked: new Date().toISOString(),
-      response_time: result.responseTime,
-      error_message: result.message
+      response_time: probe.responseTime,
+      error_message: probe.status === 'DOWN' ? probe.message : null,
     };
 
-    const { error: updateError } = await supabase
-      .from("monitors")
-      .update(updatePayload)
-      .eq("id", monitorId);
+    // 4. If it's down, send an email IMMEDIATELY (no cooldown)
+    if (probe.status === "DOWN") {
+      console.log(`Manual test for ${monitor.id} is DOWN. Bypassing cooldown and sending alert.`);
+      
+      updatePayload.last_alert_sent = new Date().toISOString(); // Also update the alert time
 
-    if (updateError) {
-      throw new Error(`Failed to update monitor ${monitorId}. DB Error: ${updateError.message}`);
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (monitor.notify_email && resendApiKey) {
+        fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${resendApiKey}`,
+            },
+            body: JSON.stringify({
+              from: "Mission Control <alerts@lovable.app>",
+              to: [monitor.notify_email],
+              subject: `🚨 Alert: Your mission "${monitor.name}" is DOWN`,
+              html: `<p>Commander,</p><p>A manual signal test for mission <strong>${monitor.name}</strong> (${monitor.url}) has failed.</p><p>Our sensors show it is unresponsive.</p><p>- OrbitPing Mission Control</p>`,
+            }),
+          });
+      }
     }
+    
+    const { error: updateError } = await supabase.from("monitors").update(updatePayload).eq("id", monitorId);
+    if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
 
-    // ====================================================================
-    // THE FIX IS HERE! 
-    // We translate the DB status ('UP'/'DOWN') to the frontend status
-    // ('online'/'offline') before sending the response.
-    // ====================================================================
-    const frontendStatus = databaseStatus === 'UP' ? 'online' : 'offline';
-
-    // Step 4: Return a response the frontend can understand.
-    return new Response(JSON.stringify({ 
-      status: frontendStatus, 
-      responseTime: result.responseTime,
-      errorMessage: result.message
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+    return new Response(JSON.stringify({ status: probe.status === 'UP' ? 'online' : 'offline', responseTime: probe.responseTime }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error("test-url function crashed:", errorMessage);
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+    return new Response(String(err?.message ?? err), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
     });
   }
 });
