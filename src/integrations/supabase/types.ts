@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_events: {
+        Row: {
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          monitor_id: string
+          provider: string
+          provider_message_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          monitor_id: string
+          provider?: string
+          provider_message_id?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          monitor_id?: string
+          provider?: string
+          provider_message_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      devices: {
+        Row: {
+          created_at: string | null
+          id: string
+          token: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          token: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          token?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       monitor_checks: {
         Row: {
           checked_at: string
@@ -51,9 +108,12 @@ export type Database = {
       }
       monitors: {
         Row: {
+          alert_cooldown_minutes: number
           created_at: string
           error_message: string | null
           id: string
+          last_alert_sent: string | null
+          last_alert_sent_at: string | null
           last_checked: string | null
           monitoring_interval: number | null
           name: string
@@ -65,9 +125,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          alert_cooldown_minutes?: number
           created_at?: string
           error_message?: string | null
           id?: string
+          last_alert_sent?: string | null
+          last_alert_sent_at?: string | null
           last_checked?: string | null
           monitoring_interval?: number | null
           name: string
@@ -79,9 +142,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          alert_cooldown_minutes?: number
           created_at?: string
           error_message?: string | null
           id?: string
+          last_alert_sent?: string | null
+          last_alert_sent_at?: string | null
           last_checked?: string | null
           monitoring_interval?: number | null
           name?: string
@@ -124,24 +190,6 @@ export type Database = {
         }
         Relationships: []
       }
-      devices: {
-        Row: {
-          id: string;
-          user_id: string;
-          token: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          token: string;
-          created_at?: string;
-        };
-        Update: {
-          token?: string;
-          created_at?: string;
-        };
-      };
     }
     Views: {
       [_ in never]: never

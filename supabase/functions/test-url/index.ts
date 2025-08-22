@@ -12,9 +12,11 @@ type Monitor = {
   status?: string | null;         // unknown enum/text in your schema
   email_to?: string | null;
   user_id?: string | null;
+  last_alert_sent?: string | null; // timestamp for cooldown tracking
 };
 
 const TIMEOUT_MS = 15000;
+const COOLDOWN_MINUTES = 60;
 
 function withTimeout(ms: number) {
   const controller = new AbortController();
@@ -88,6 +90,28 @@ async function getRecipientEmail(
   }
   
   return FALLBACK_TO; // last resort so we can test end-to-end
+}
+
+async function shouldSendEmailWithCooldown(monitor: Monitor, isManualTest: boolean): Promise<boolean> {
+  // Manual tests always bypass cooldown
+  if (isManualTest) {
+    return true;
+  }
+  
+  // If no last alert time, allow sending
+  if (!monitor.last_alert_sent) {
+    return true;
+  }
+  
+  // Check if cooldown period has passed (60 minutes)
+  const lastAlertTime = new Date(monitor.last_alert_sent);
+  const now = new Date();
+  const timeDifferenceMinutes = (now.getTime() - lastAlertTime.getTime()) / (1000 * 60);
+  
+  const canSend = timeDifferenceMinutes >= COOLDOWN_MINUTES;
+  console.log(`Cooldown check for monitor ${monitor.id}: last alert ${timeDifferenceMinutes.toFixed(1)} minutes ago, can send: ${canSend}`);
+  
+  return canSend;
 }
 
 async function invokeSendEmail(
@@ -165,11 +189,13 @@ Deno.serve(async (req) => {
       if (!upd.ok) console.error("update monitor failed", m.id, upd.error);
     }
 
-    // Email on transitions OR if explicitly testing a single monitor
-    const shouldSendEmail = transitioned || (targetMonitorId && monitors.length === 1);
+    // Check if we should send email
+    const isManualTest = targetMonitorId && monitors.length === 1;
+    const shouldSendEmailForTransition = transitioned && await shouldSendEmailWithCooldown(m, isManualTest);
+    const shouldSendEmail = shouldSendEmailForTransition || isManualTest;
     
     if (shouldSendEmail) {
-      console.log(`Sending email alert - transitioned: ${transitioned}, testing single: ${!!targetMonitorId}`);
+      console.log(`Sending email alert - transitioned: ${transitioned}, manual test: ${isManualTest}, cooldown check: ${shouldSendEmailForTransition}`);
       
       try {
         await invokeSendEmail(supabase, {
@@ -179,6 +205,13 @@ Deno.serve(async (req) => {
           probe: { ok: probe.ok, status: probe.status, ms: probe.ms, error: probe.error },
           occurred_at: new Date().toISOString(),
         });
+        
+        // Update last_alert_sent timestamp after successful email
+        await supabase
+          .from("monitors")
+          .update({ last_alert_sent: new Date().toISOString() })
+          .eq("id", m.id);
+          
         console.log(`Email alert sent for monitor ${m.id} (${nextStatus})`);
       } catch (error) {
         console.error(`Failed to send email for monitor ${m.id}:`, error);
