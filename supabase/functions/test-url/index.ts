@@ -80,11 +80,13 @@ async function getRecipientEmail(
   m: Monitor
 ): Promise<string | null> {
   if (m.email_to) return m.email_to;
-  // Optional: look up profiles email if you actually have it
+  
+  // Try to get email from profiles table
   if (m.user_id) {
-    const { data, error } = await supabase.from("profiles").select("email").eq("id", m.user_id).maybeSingle();
+    const { data, error } = await supabase.from("profiles").select("email").eq("user_id", m.user_id).maybeSingle();
     if (!error && (data as any)?.email) return (data as any).email as string;
   }
+  
   return FALLBACK_TO; // last resort so we can test end-to-end
 }
 
@@ -92,9 +94,20 @@ async function invokeSendEmail(
   supabase: ReturnType<typeof createClient>,
   payload: any
 ) {
-  const { data, error } = await supabase.functions.invoke("send-alert-email", { body: payload });
-  if (error) console.error("invoke send-alert-email failed", error);
-  else console.log("send-alert-email invoked:", data ?? "ok");
+  console.log("Invoking send-alert-email with payload:", JSON.stringify(payload, null, 2));
+  
+  try {
+    const { data, error } = await supabase.functions.invoke("send-alert-email", { body: payload });
+    if (error) {
+      console.error("invoke send-alert-email failed:", error);
+      throw error;
+    }
+    console.log("send-alert-email invoked successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error invoking send-alert-email:", error);
+    throw error;
+  }
 }
 
 const corsHeaders = {
@@ -152,19 +165,23 @@ Deno.serve(async (req) => {
       if (!upd.ok) console.error("update monitor failed", m.id, upd.error);
     }
 
-    // Email on transitions (only if we can resolve recipient)
-    if (transitioned) {
-      const to = await getRecipientEmail(supabase, m);
-      if (!to) {
-        console.warn("No recipient email for monitor", m.id);
-      } else {
+    // Email on transitions OR if explicitly testing a single monitor
+    const shouldSendEmail = transitioned || (targetMonitorId && monitors.length === 1);
+    
+    if (shouldSendEmail) {
+      console.log(`Sending email alert - transitioned: ${transitioned}, testing single: ${!!targetMonitorId}`);
+      
+      try {
         await invokeSendEmail(supabase, {
           type: nextStatus, // DOWN or UP
           monitor: { id: m.id, name: m.name ?? m.url, url: m.url },
-          to,
+          user_id: m.user_id, // Let send-alert-email function resolve the email
           probe: { ok: probe.ok, status: probe.status, ms: probe.ms, error: probe.error },
           occurred_at: new Date().toISOString(),
         });
+        console.log(`Email alert sent for monitor ${m.id} (${nextStatus})`);
+      } catch (error) {
+        console.error(`Failed to send email for monitor ${m.id}:`, error);
       }
     }
 
