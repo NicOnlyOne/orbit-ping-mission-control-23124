@@ -89,8 +89,6 @@ serve(async (req) => {
       const updatedMonitorData = {
         status: result.status,
         response_time: result.responseTime,
-        last_checked: new Date().toISOString(),
-        error_message: result.message,
       };
 
       const { error: updateError } = await supabaseAdmin
