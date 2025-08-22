@@ -7,6 +7,10 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // 🔽🔽🔽 THIS IS THE NEW DIAGNOSTIC LINE 🔽🔽🔽
+  console.log(`send-alert-email received a request with method: ${req.method}`);
+  // 🔼🔼🔼 END OF NEW LINE 🔼🔼🔼
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -57,14 +61,14 @@ serve(async (req) => {
     })
 
     const result = await response.json()
-    
+
     if (!response.ok) {
       console.error('❌ Resend API error:', result)
       throw new Error(result.message || `HTTP ${response.status}`)
     }
 
     console.log('✅ Email sent successfully:', result)
-    
+
     return new Response(
       JSON.stringify({ success: true, result }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
