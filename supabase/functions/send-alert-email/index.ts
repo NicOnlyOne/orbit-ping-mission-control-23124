@@ -29,7 +29,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Mission Control <alerts@lovable.dev>',
+        from: 'Mission Control <onboarding@resend.dev>',
         to: to,
         subject: `🚨 Alert: ${monitor.name} is DOWN`,
         html: `
