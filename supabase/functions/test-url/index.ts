@@ -50,7 +50,8 @@ serve(async (req) => {
     // SCENARIO 1: Anonymous URL Check (no monitorId)
     if (url && !monitorId) {
       const result = await probeUrl(url);
-      return new Response(JSON.stringify(result), {
+      // For anonymous checks, we can still return UP/DOWN
+      return new Response(JSON.stringify({ status: result.status }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
@@ -62,7 +63,6 @@ serve(async (req) => {
       
       let monitorUrl = url;
 
-      // If no URL was passed in the body (e.g., from an automated check), fetch it.
       if (!monitorUrl) {
         const { data: monitor, error: fetchError } = await supabase
           .from("monitors")
@@ -78,8 +78,12 @@ serve(async (req) => {
       
       const result = await probeUrl(monitorUrl);
 
+      // <<< LOVABLE AI FIX: Translate status to trigger the email function
+      // The database trigger expects 'online' or 'offline', not 'UP' or 'DOWN'.
+      const databaseStatus = result.status === 'UP' ? 'online' : 'offline';
+
       const updatedMonitorData = {
-        status: result.status,
+        status: databaseStatus, // Use the correct status word
         response_time: result.responseTime,
         last_checked: new Date().toISOString()
       };
@@ -95,7 +99,8 @@ serve(async (req) => {
         throw updateError;
       }
       
-      return new Response(JSON.stringify(updatedData), {
+      // Return the original UP/DOWN status to the frontend for consistency
+      return new Response(JSON.stringify({ ...updatedData, status: result.status }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
