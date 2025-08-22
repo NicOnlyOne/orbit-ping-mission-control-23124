@@ -39,6 +39,8 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
 
       if (error) throw error;
 
+      // --- Translation Guide ---
+      // Map the backend's response ('UP'/'DOWN') to what the UI understands ('online'/'offline')
       const mappedResult: TestResult = {
         status: backendResult.status === 'UP' ? 'online' : 'offline',
         responseTime: backendResult.responseTime,
@@ -48,7 +50,6 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       
       setResult(mappedResult);
       setShowConversion(true);
-      localStorage.setItem('pending-mission-url', url.trim());
 
     } catch (err: any) {
       console.error("Error testing URL:", err);
@@ -65,10 +66,19 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
 
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {
-      case 'online': return <CheckCircle className="h-6 w-6 text-green-500" />;
-      case 'offline': return <AlertCircle className="h-6 w-6 text-red-500" />;
-      case 'warning': return <Clock className="h-6 w-6 text-yellow-500" />;
+      case 'online': return <CheckCircle className="h-6 w-6 text-status-online" />;
+      case 'offline': return <AlertCircle className="h-6 w-6 text-status-offline" />;
+      case 'warning': return <AlertCircle className="h-6 w-6 text-yellow-500" />;
       default: return null;
+    }
+  };
+
+  const getStatusColor = (status: TestResult['status']) => {
+    switch (status) {
+      case 'online': return "text-status-online";
+      case 'offline': return "text-status-offline";
+      case 'warning': return "text-yellow-500";
+      default: return "";
     }
   };
 
@@ -113,12 +123,7 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
               <div className="flex-grow grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  {/* Applying color classes directly to be safe for the build process */}
-                  <p className={`text-2xl font-bold ${
-                    result.status === 'online' ? 'text-green-500' : 
-                    result.status === 'offline' ? 'text-red-500' : 
-                    'text-yellow-500'
-                  }`}>
+                  <p className={`text-2xl font-bold ${getStatusColor(result.status)}`}>
                     {result.status.charAt(0).toUpperCase() + result.status.slice(1)}
                   </p>
                 </div>
@@ -161,4 +166,4 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       </CardContent>
     </Card>
   );
-};```
+};
