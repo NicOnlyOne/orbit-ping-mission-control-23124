@@ -61,157 +61,124 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 // Data access: load & update monitors
 // ==================================
 async function loadMonitors(targetMonitorId?: string): Promise<MonitorRow[]> {
+  const query = supabase.from(TABLE_MONITORS).select("*");
+
   if (targetMonitorId) {
-    const { data, error } = await supabase
-      .from<MonitorRow>(TABLE_MONITORS)
-      .select("*")
-      .eq("id", targetMonitorId)
-      .limit(1);
-    if (error) throw error;
-    return (data ?? []).filter((m) => !!m);
+    query.eq("id", targetMonitorId);
+  } else {
+    query.eq("enabled", true);
   }
 
-  // load all enabled monitors
-  const { data, error } = await supabase
-    .from<MonitorRow>(TABLE_MONITORS)
-    .select("*")
-    .eq("enabled", true);
+  const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).filter((m): m is MonitorRow => !!m);
 }
 
-async function updateMonitorStatus(id: string, nextStatus: "UP" | "DOWN") {
-  const { error } = await supabase
-    .from(TABLE_MONITORS)
-    .update({ status: nextStatus, last_checked: nowIso() }) // Also update last_checked time
-    .eq("id", id);
+async function updateMonitorStatus(id: string, nextStatus: "UP" | "DOWN"): Promise<void> {
+  const { error } = await supabase.from(TABLE_MONITORS).update({ status: nextStatus, last_checked: nowIso() }).eq("id", id);
   if (error) throw error;
 }
 
-async function markLastAlertSent(id: string) {
-  const { error } = await supabase
-    .from(TABLE_MONITORS)
-    .update({ last_alert_sent: nowIso() })
-    .eq("id", id);
+async function markLastAlertSent(id: string): Promise<void> {
+  const { error } = await supabase.from(TABLE_MONITORS).update({ last_alert_sent: nowIso() }).eq("id", id);
   if (error) throw error;
 }
 
-// =====================
-// Cooldown + email send
-// =====================
-async function shouldSendEmailWithCooldown(m: MonitorRow): Promise<boolean> {
-  if (!m.last_alert_sent) return true;
-  return minutesSince(m.last_alert_sent) >= COOLDOWN_MINUTES;
+// ========================
+// Business logic
+// ========================
+type ProbeResult = { ok: boolean; status?: number; error?: string };
+
+async function probeUrl(url: string): Promise<ProbeResult> {
+  try {
+    const res = await withTimeout(fetch(url, { method: "HEAD", redirect: "follow" }), TIMEOUT_MS);
+    return { ok: res.ok, status: res.status };
+  } catch (err: any) {
+    return { ok: false, error: err?.message ?? String(err) };
+  }
 }
 
-// REAL EMAIL INTEGRATION
+async function shouldSendEmailWithCooldown(monitor: MonitorRow): Promise<boolean> {
+  if (!monitor.last_alert_sent) return true;
+  return minutesSince(monitor.last_alert_sent) >= COOLDOWN_MINUTES;
+}
+
+// THIS IS THE CORRECTED FUNCTION
 async function invokeSendEmail(args: {
   monitor: MonitorRow;
-  type: "DOWN" | "UP"; // Allow "UP" type for testing
-  probeResult: { ok: boolean; status?: number; error?: string | null };
-}) {
+  type: "UP" | "DOWN";
+  probeResult: ProbeResult;
+}): Promise<{ ok: boolean; skipped?: boolean }> {
   if (DISABLE_ALERTS) return { ok: true, skipped: true };
 
-  const to = args.monitor.notify_email;
-  if (!to) {
+  const toEmail = args.monitor.notify_email;
+  if (!toEmail) {
     console.warn(`Monitor ${args.monitor.id} has no notify_email; skipping email.`);
     return { ok: false, skipped: true };
   }
 
   try {
-    console.log(`🚀 Calling send-alert-email function for monitor: ${args.monitor.name}`);
-
-    // The 'type' will now be based on the actual status, which helps the email template.
-    const alertPayload = {
+    console.log(`Invoking 'send-alert-email' for monitor: ${args.monitor.name}`);
+    
+    // This body now perfectly matches what send-alert-email expects
+    const { error } = await supabase.functions.invoke('send-alert-email', {
+      body: {
         monitor: args.monitor,
-        type: args.probeResult.ok ? 'UP' : 'DOWN',
+        type: args.type,
         probeResult: args.probeResult,
-    }
-
-    const { data, error } = await supabase.functions.invoke('send-alert-email', {
-      body: alertPayload
+        to: toEmail,
+      }
     });
 
-    if (error) {
-      console.error('❌ send-alert-email function error:', error);
-      return { ok: false, error: error.message };
-    }
+    if (error) throw error;
 
-    console.log('✅ send-alert-email function success:', data);
-    return { ok: true, result: data };
+    console.log(`Successfully invoked 'send-alert-email' for ${args.monitor.name}.`);
+    return { ok: true, skipped: false };
 
-  } catch (error) {
-    console.error('❌ Error calling send-alert-email function:', error);
-    return { ok: false, error: error.message };
+  } catch (invokeError) {
+    console.error(`Error invoking send-alert-email function:`, invokeError);
+    return { ok: false, skipped: false };
   }
 }
 
-// ======
-// Probe
-// ======
-async function probeUrl(url: string): Promise<{ ok: boolean; status?: number; error?: string | null }> {
-  try {
-    const res = await withTimeout(fetch(url, { redirect: "follow" }), TIMEOUT_MS);
-    return { ok: res.ok, status: res.status, error: null };
-  } catch (e: any) {
-    return { ok: false, status: undefined, error: e?.message ?? String(e) };
-  }
-}
-
-// =====================
-// HTTP request handling
-// =====================
-Deno.serve(async (req: Request) => {
-  // CORS preflight
+// ========================
+// Main request handler
+// ========================
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Accept monitor_id via POST JSON or query string (?monitor_id=...)
-    let targetMonitorId: string | undefined;
-    if (req.method === "POST") {
-      const body = await req.json().catch(() => ({}));
-      if (typeof body?.monitor_id === "string") targetMonitorId = body.monitor_id;
-    } else if (req.method === "GET") {
-      const url = new URL(req.url);
-      const qid = url.searchParams.get("monitor_id");
-      if (qid) targetMonitorId = qid;
-    }
+    const payload = await req.json();
+    const targetMonitorId: string | undefined = payload.id;
+    const isManualTest = !!targetMonitorId;
 
     const monitors = await loadMonitors(targetMonitorId);
-    const isManualTest = Boolean(targetMonitorId) && monitors.length === 1;
-
     const results: any[] = [];
 
     for (const m of monitors) {
-      if (m.enabled === false) {
+      if (!m.enabled) {
         results.push({ id: m.id, skipped: true, reason: "disabled" });
         continue;
       }
 
-      // 1) Probe
       const probe = await probeUrl(m.url);
       const nextStatus: "UP" | "DOWN" = probe.ok ? "UP" : "DOWN";
       const prevStatus: "UP" | "DOWN" = (m.status ?? "UP") as any;
       const transitioned = nextStatus !== prevStatus;
-
-      // 2) Decide whether we want an alert
-      // ============================================================================
-      // ===> THIS IS THE ONLY LINE I CHANGED <===
+      
+      // This logic forces an alert on manual tests
       const wantsAlert = isManualTest || (!isManualTest && transitioned && nextStatus === "DOWN");
-      // ============================================================================
 
-      // 3) Cooldown rule
       const cooldownOK = isManualTest ? true : await shouldSendEmailWithCooldown(m);
       const shouldSendEmail = wantsAlert && cooldownOK && !DISABLE_ALERTS;
 
-      // 4) Send email if needed
       let email: { ok: boolean; skipped?: boolean } | null = null;
       if (shouldSendEmail) {
         email = await invokeSendEmail({
           monitor: m,
-          type: nextStatus, // Send the actual status
+          type: nextStatus,
           probeResult: probe,
         });
 
@@ -220,7 +187,6 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // 5) Persist the new status
       await updateMonitorStatus(m.id, nextStatus);
 
       results.push({
