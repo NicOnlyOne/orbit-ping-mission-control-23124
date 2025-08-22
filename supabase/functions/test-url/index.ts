@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
     // Check if we should send email
     const isManualTest = targetMonitorId && monitors.length === 1;
     const shouldSendEmailForTransition = transitioned && nextStatus === "DOWN" && await shouldSendEmailWithCooldown(m, isManualTest);
-    const shouldSendEmail = shouldSendEmailForTransition ;
+    const shouldSendEmail = shouldSendEmailForTransition || isManualTest;
     
     if (shouldSendEmail) {
       console.log(`Sending email alert - transitioned: ${transitioned}, manual test: ${isManualTest}, cooldown check: ${shouldSendEmailForTransition}`);
