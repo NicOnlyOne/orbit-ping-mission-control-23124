@@ -48,8 +48,6 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       
       setResult(mappedResult);
       setShowConversion(true);
-      
-      // Restore logic to save URL for conversion
       localStorage.setItem('pending-mission-url', url.trim());
 
     } catch (err: any) {
@@ -71,15 +69,6 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       case 'offline': return <AlertCircle className="h-6 w-6 text-red-500" />;
       case 'warning': return <Clock className="h-6 w-6 text-yellow-500" />;
       default: return null;
-    }
-  };
-
-  const getStatusColor = (status: TestResult['status']) => {
-    switch (status) {
-      case 'online': return "text-green-500";
-      case 'offline': return "text-red-500";
-      case 'warning': return "text-yellow-500";
-      default: return "";
     }
   };
 
@@ -124,7 +113,12 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
               <div className="flex-grow grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <p className={`text-2xl font-bold ${getStatusColor(result.status)}`}>
+                  {/* Applying color classes directly to be safe for the build process */}
+                  <p className={`text-2xl font-bold ${
+                    result.status === 'online' ? 'text-green-500' : 
+                    result.status === 'offline' ? 'text-red-500' : 
+                    'text-yellow-500'
+                  }`}>
                     {result.status.charAt(0).toUpperCase() + result.status.slice(1)}
                   </p>
                 </div>
@@ -167,4 +161,4 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
       </CardContent>
     </Card>
   );
-};
+};```
