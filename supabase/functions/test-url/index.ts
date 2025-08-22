@@ -1,149 +1,212 @@
-// PASTE THIS FINAL CODE INTO: supabase/functions/test-url/index.ts
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { corsHeaders } from "../_shared/cors.ts";
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
-import { Resend } from "https://esm.sh/resend@3.2.0";
+// =================================
+// Types and Constants
+// =================================
 
-// Define the structure of a monitor from our database
-type Monitor = {
+// The table in your database that stores the monitors
+const TABLE_MONITORS = "monitors";
+
+// A "MonitorRow" represents a single monitor (a single row in your table)
+interface MonitorRow {
   id: string;
+  user_id: string;
   name: string;
   url: string;
-  status?: "UP" | "DOWN" | null;
-  last_alert_sent?: string | null;
-  notify_email?: string | null;
-};
+  status: "UP" | "DOWN" | "PENDING";
+  last_alert_sent: string | null;
+  notify_email: string | null;
+}
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// =================================
+// Main Function Logic
+// =================================
 
-// --- CONFIGURATION ---
-const TIMEOUT_MS = 15_000;
-const COOLDOWN_MINUTES = 60; // How long to wait before sending another DOWN alert for the same site
-
-// --- SECRETS (Ensure these are set in your Supabase Project Dashboard) ---
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
+console.log("--- Edge function starting up ---");
 
 Deno.serve(async (req) => {
+  // This part handles the "Test Signal" button click from the browser
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const { monitorId } = await req.json();
-    if (!monitorId) throw new Error("Missing monitorId in request body.");
-    
-    // Initialize clients
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const resend = new Resend(RESEND_API_KEY);
+    if (!monitorId) throw new Error("Missing monitorId in request body");
 
-    // 1. Fetch monitor details from the database
-    const { data: monitor, error: dbError } = await supabase
-      .from("monitors")
+    console.log(`--- Received test request for monitor: ${monitorId} ---`);
+
+    // Create a Supabase client to talk to the database
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: req.headers.get("Authorization")! } } }
+    );
+
+    // 1. Get the monitor's details from the database
+    const { data: monitor, error: fetchError } = await supabase
+      .from(TABLE_MONITORS)
       .select("*")
       .eq("id", monitorId)
       .single();
 
-    if (dbError) throw new Error(`Database error: ${dbError.message}`);
-    if (!monitor) throw new Error(`Monitor with ID ${monitorId} not found.`);
+    if (fetchError || !monitor) {
+      throw new Error(`Failed to fetch monitor or monitor not found: ${fetchError?.message || 'Not Found'}`);
+    }
 
-    console.log(`--- FINAL: Starting check for "${monitor.name}" (${monitor.url}) ---`);
+    console.log(`--- Checking URL: ${monitor.url} for monitor "${monitor.name}" ---`);
 
-    // 2. Probe the target URL
+    // 2. Check if the website is actually up or down
     const probeResult = await probeUrl(monitor.url);
 
     // 3. Update the database with the result
-    await supabase
-      .from("monitors")
-      .update({
-        status: probeResult.status,
-        response_time: probeResult.responseTime,
-        error_message: probeResult.errorMessage,
-        last_checked: new Date().toISOString(),
-      })
-      .eq("id", monitor.id);
+    const nextStatus = probeResult.ok ? "UP" : "DOWN";
+    await updateMonitorStatus(supabase, monitor.id, nextStatus);
 
-    console.log(`--- FINAL: Database updated. Status: ${probeResult.status}, Response Time: ${probeResult.responseTime}ms ---`);
+    console.log(`--- Probe result for ${monitor.name}: ${nextStatus} ---`);
 
-    // 4. Send alert if the site is DOWN and cooldown has passed
-    if (probeResult.status === "DOWN") {
-      const shouldSendAlert = !monitor.last_alert_sent || 
-        (new Date().getTime() - new Date(monitor.last_alert_sent).getTime() > COOLDOWN_MINUTES * 60 * 1000);
+    // 4. If the site is DOWN, send an email alert
+    if (nextStatus === "DOWN") {
+      console.log(`--- Status is DOWN. Preparing to send alert for ${monitor.name}. ---`);
+      
+      const emailResult = await invokeSendEmail({
+        monitor: monitor,
+        type: "DOWN",
+        probeResult: probeResult,
+      });
 
-      if (monitor.notify_email && shouldSendAlert) {
-        console.log(`--- FINAL: Sending DOWN alert to ${monitor.notify_email} ---`);
-        await sendDownAlert(resend, monitor, probeResult.errorMessage);
-        // Update the last_alert_sent timestamp in the DB
-        await supabase
-          .from("monitors")
-          .update({ last_alert_sent: new Date().toISOString() })
-          .eq("id", monitor.id);
+      if (emailResult.ok) {
+        // If email was sent, mark it in the database to avoid spamming
+        await markLastAlertSent(supabase, monitor.id);
+        console.log(`--- Alert email sent and timestamp updated for ${monitor.name}. ---`);
       } else {
-         console.log(`--- FINAL: DOWN status detected, but alert cooldown is active or no email is set. ---`);
+        console.error(`--- Failed to send alert email for ${monitor.name}. ---`);
       }
     }
 
-    return new Response(JSON.stringify({
-      status: probeResult.status,
-      message: `Check complete for ${monitor.name}. Status: ${probeResult.status}.`
-    }), {
+    return new Response(JSON.stringify({ status: nextStatus }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
     });
-
   } catch (error) {
-    console.error("--- FINAL: CRITICAL ERROR ---", error.message);
+    console.error("---!!!--- An error occurred in the main function: ", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
     });
   }
 });
 
-// Helper function to check a URL
-async function probeUrl(url: string): Promise<{ status: "UP" | "DOWN"; responseTime: number; errorMessage: string | null; }> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  
-  try {
-    const startTime = Date.now();
-    const response = await fetch(url, { signal: controller.signal });
-    const endTime = Date.now();
-    
-    clearTimeout(timeoutId);
 
-    if (response.ok) {
-      return { status: "UP", responseTime: endTime - startTime, errorMessage: null };
+// =================================
+// Helper Functions
+// =================================
+
+/**
+ * Checks if a URL is reachable.
+ * Returns { ok: true } for success, or { ok: false, error, status } for failure.
+ */
+async function probeUrl(url: string): Promise<{ ok: boolean; status?: number; error?: string }> {
+  try {
+    const response = await fetch(url, { method: "HEAD", redirect: "follow" });
+    if (response.status >= 200 && response.status < 400) {
+      return { ok: true, status: response.status };
     } else {
-      return { status: "DOWN", responseTime: endTime - startTime, errorMessage: `HTTP Error: Status ${response.status}` };
+      return { ok: false, status: response.status, error: `HTTP status ${response.status}` };
     }
-  } catch (error) {
-    clearTimeout(timeoutId);
-    return { status: "DOWN", responseTime: 0, errorMessage: error.message };
+  } catch (err) {
+    // This catches network errors, like the server being completely offline
+    return { ok: false, error: err.message };
   }
 }
 
-// Helper function to send email alert
-async function sendDownAlert(resend: Resend, monitor: Monitor, errorMessage: string | null) {
-  const subject = `🚨 Alert: Your Mission "${monitor.name}" is Down!`;
-  const body = `
-    <p>Houston, we have a problem.</p>
-    <p>Our monitoring systems have detected that your mission, <strong>${monitor.name}</strong>, is currently down.</p>
+/**
+ * Updates the monitor's status in the database.
+ */
+async function updateMonitorStatus(supabase: any, id: string, nextStatus: "UP" | "DOWN") {
+  const { error } = await supabase
+    .from(TABLE_MONITORS)
+    .update({ status: nextStatus, last_checked: new Date().toISOString() })
+    .eq("id", id);
+  if (error) {
+    console.error("Database update error:", error);
+    throw new Error("Failed to update monitor status in database.");
+  }
+}
+
+/**
+ * Records the time an alert was sent to prevent sending too many emails.
+ */
+async function markLastAlertSent(supabase: any, id:string) {
+  const { error } = await supabase
+    .from(TABLE_MONITORS)
+    .update({ last_alert_sent: new Date().toISOString() })
+    .eq("id", id);
+  if (error) {
+    console.error("Mark alert sent error:", error);
+  }
+}
+
+/**
+ * Sends the actual email alert using Resend.com
+ */
+async function invokeSendEmail(args: {
+  monitor: MonitorRow;
+  type: "DOWN";
+  probeResult: { ok: boolean; status?: number; error?: string };
+}): Promise<{ ok: boolean }> {
+  const to = args.monitor.notify_email;
+  if (!to) {
+    console.warn(`Monitor ${args.monitor.id} has no notify_email; skipping email.`);
+    return { ok: true }; // Not an error, just skipping
+  }
+
+  // Securely get the API key from Supabase Secrets
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+  if (!RESEND_API_KEY) {
+    console.error("!!! CRITICAL: RESEND_API_KEY is not set in Supabase secrets. Cannot send email.");
+    return { ok: false };
+  }
+
+  const subject = `🚨 [Orbit Ping] Mission Down: ${args.monitor.name}`;
+  const bodyHtml = `
+    <h1>Houston, we have a problem!</h1>
+    <p>Your mission <strong>${args.monitor.name}</strong> is currently offline.</p>
     <ul>
-      <li><strong>URL:</strong> <a href="${monitor.url}">${monitor.url}</a></li>
-      <li><strong>Time of Detection:</strong> ${new Date().toUTCString()}</li>
-      <li><strong>Error Details:</strong> ${errorMessage || "No specific error message was returned."}</li>
+      <li><strong>URL:</strong> ${args.monitor.url}</li>
+      <li><strong>Time of Alert:</strong> ${new Date().toUTCString()}</li>
+      <li><strong>Detected Error:</strong> ${args.probeResult.error || `Received HTTP Status ${args.probeResult.status}`}</li>
     </ul>
-    <p>Please investigate the issue immediately.</p>
-    <p><em>Orbit Ping Mission Control</em></p>
+    <p>Please investigate the status of the target system.</p>
+    <p><em>- Orbit Ping Mission Control</em></p>
   `;
 
-  await resend.emails.send({
-    from: "Mission Control <alerts@yourdomain.com>", // IMPORTANT: Change to your verified Resend domain
-    to: monitor.notify_email!,
-    subject: subject,
-    html: body,
-  });
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: "Orbit Ping <onboarding@resend.dev>", // This is a special address that works for testing
+        to: to,
+        subject: subject,
+        html: bodyHtml,
+      }),
+    });
+
+    if (res.ok) {
+      console.log(`Alert email sent successfully to ${to} for monitor ${args.monitor.id}`);
+      return { ok: true };
+    } else {
+      const errorBody = await res.json();
+      console.error(`Failed to send email via Resend. Status: ${res.status}`, errorBody);
+      return { ok: false };
+    }
+  } catch (error) {
+    console.error("An unexpected error occurred while sending the email:", error);
+    return { ok: false };
+  }
 }
