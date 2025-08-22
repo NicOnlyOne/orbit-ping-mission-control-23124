@@ -97,21 +97,37 @@ async function invokeSendEmail(
   else console.log("send-alert-email invoked:", data ?? "ok");
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
   const body = await req.json().catch(() => ({}));
-  const targetMonitorId: string | undefined = body?.monitor_id;
+  const targetMonitorId: string | undefined = body?.monitor_id || body?.monitorId;
 
   // Load monitors
   let monitors: Monitor[] = [];
   if (targetMonitorId) {
     const { data, error } = await supabase.from("monitors").select("*").eq("id", targetMonitorId);
-    if (error) return new Response(error.message, { status: 500 });
+    if (error) return new Response(error.message, { 
+      status: 500,
+      headers: corsHeaders
+    });
     monitors = data as Monitor[];
   } else {
     const { data, error } = await supabase.from("monitors").select("*").neq("url", null);
-    if (error) return new Response(error.message, { status: 500 });
+    if (error) return new Response(error.message, { 
+      status: 500,
+      headers: corsHeaders
+    });
     monitors = data as Monitor[];
   }
 
@@ -166,6 +182,9 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({ ok: true, results }, null, 2), {
-    headers: { "content-type": "application/json" },
+    headers: { 
+      "content-type": "application/json",
+      ...corsHeaders
+    },
   });
 });
