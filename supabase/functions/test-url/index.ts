@@ -36,7 +36,10 @@ const corsHeaders = {
   "cache-control": "no-store",
 };
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Create a single Supabase client instance
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
 
 // ===============
 // Utility helpers
@@ -62,26 +65,14 @@ async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 // ==================================
 async function loadMonitors(targetMonitorId?: string): Promise<MonitorRow[]> {
   const query = supabase.from(TABLE_MONITORS).select("*");
-
   if (targetMonitorId) {
     query.eq("id", targetMonitorId);
   } else {
     query.eq("enabled", true);
   }
-
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).filter((m): m is MonitorRow => !!m);
-}
-
-async function updateMonitorStatus(id: string, nextStatus: "UP" | "DOWN"): Promise<void> {
-  const { error } = await supabase.from(TABLE_MONITORS).update({ status: nextStatus, last_checked: nowIso() }).eq("id", id);
-  if (error) throw error;
-}
-
-async function markLastAlertSent(id: string): Promise<void> {
-  const { error } = await supabase.from(TABLE_MONITORS).update({ last_alert_sent: nowIso() }).eq("id", id);
-  if (error) throw error;
 }
 
 // ========================
@@ -103,44 +94,6 @@ async function shouldSendEmailWithCooldown(monitor: MonitorRow): Promise<boolean
   return minutesSince(monitor.last_alert_sent) >= COOLDOWN_MINUTES;
 }
 
-// THIS IS THE CORRECTED FUNCTION
-async function invokeSendEmail(args: {
-  monitor: MonitorRow;
-  type: "UP" | "DOWN";
-  probeResult: ProbeResult;
-}): Promise<{ ok: boolean; skipped?: boolean }> {
-  if (DISABLE_ALERTS) return { ok: true, skipped: true };
-
-  const toEmail = args.monitor.notify_email;
-  if (!toEmail) {
-    console.warn(`Monitor ${args.monitor.id} has no notify_email; skipping email.`);
-    return { ok: false, skipped: true };
-  }
-
-  try {
-    console.log(`Invoking 'send-alert-email' for monitor: ${args.monitor.name}`);
-    
-    // This body now perfectly matches what send-alert-email expects
-    const { error } = await supabase.functions.invoke('send-alert-email', {
-      body: {
-        monitor: args.monitor,
-        type: args.type,
-        probeResult: args.probeResult,
-        to: toEmail,
-      }
-    });
-
-    if (error) throw error;
-
-    console.log(`Successfully invoked 'send-alert-email' for ${args.monitor.name}.`);
-    return { ok: true, skipped: false };
-
-  } catch (invokeError) {
-    console.error(`Error invoking send-alert-email function:`, invokeError);
-    return { ok: false, skipped: false };
-  }
-}
-
 // ========================
 // Main request handler
 // ========================
@@ -156,6 +109,7 @@ Deno.serve(async (req) => {
 
     const monitors = await loadMonitors(targetMonitorId);
     const results: any[] = [];
+    const tasks: Promise<any>[] = []; // Our "to-do list" of promises
 
     for (const m of monitors) {
       if (!m.enabled) {
@@ -168,46 +122,54 @@ Deno.serve(async (req) => {
       const prevStatus: "UP" | "DOWN" = (m.status ?? "UP") as any;
       const transitioned = nextStatus !== prevStatus;
       
-      // This logic forces an alert on manual tests
       const wantsAlert = isManualTest || (!isManualTest && transitioned && nextStatus === "DOWN");
-
       const cooldownOK = isManualTest ? true : await shouldSendEmailWithCooldown(m);
       const shouldSendEmail = wantsAlert && cooldownOK && !DISABLE_ALERTS;
 
-      let email: { ok: boolean; skipped?: boolean } | null = null;
+      let emailSent = false;
       if (shouldSendEmail) {
-        email = await invokeSendEmail({
-          monitor: m,
-          type: nextStatus,
-          probeResult: probe,
-        });
+        const toEmail = m.notify_email;
+        if (toEmail) {
+          console.log(`Queueing 'send-alert-email' for monitor: ${m.name}`);
+          // Add the email task to our to-do list
+          tasks.push(
+            supabase.functions.invoke('send-alert-email', {
+              body: { monitor: m, type: nextStatus, probeResult: probe, to: toEmail }
+            })
+          );
 
-        if (email.ok && (!isManualTest || MANUAL_COUNTS_FOR_COOLDOWN)) {
-          await markLastAlertSent(m.id);
+          if (!isManualTest || MANUAL_COUNTS_FOR_COOLDOWN) {
+            // Add the database update to our to-do list
+            tasks.push(
+              supabase.from(TABLE_MONITORS).update({ last_alert_sent: nowIso() }).eq("id", m.id)
+            );
+          }
+          emailSent = true;
         }
       }
 
-      await updateMonitorStatus(m.id, nextStatus);
+      // Add the final status update to our to-do list
+      tasks.push(
+        supabase.from(TABLE_MONITORS).update({ status: nextStatus, last_checked: nowIso() }).eq("id", m.id)
+      );
 
       results.push({
-        id: m.id,
-        name: m.name ?? null,
-        url: m.url,
-        prev_status: prevStatus,
-        next_status: nextStatus,
-        transitioned,
-        is_manual_test: isManualTest,
-        wants_alert: wantsAlert,
-        cooldown_ok: cooldownOK,
-        email_sent: Boolean(shouldSendEmail && email?.ok),
-        email_skipped: email?.skipped ?? false,
+        id: m.id, name: m.name ?? null, url: m.url, prev_status: prevStatus,
+        next_status: nextStatus, transitioned, is_manual_test: isManualTest,
+        wants_alert: wantsAlert, cooldown_ok: cooldownOK, email_sent: emailSent,
         http: { ok: probe.ok, status: probe.status ?? null, error: probe.error },
       });
     }
 
+    // This is the critical change: wait for ALL tasks in the to-do list to finish
+    console.log(`Waiting for ${tasks.length} background tasks to complete...`);
+    await Promise.all(tasks);
+    console.log("All background tasks finished.");
+
     return new Response(JSON.stringify({ ok: true, now: nowIso(), results }, null, 2), {
       headers: { "content-type": "application/json", ...corsHeaders },
     });
+
   } catch (err: any) {
     console.error(err);
     return new Response(
