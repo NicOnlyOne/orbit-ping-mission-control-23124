@@ -1,240 +1,245 @@
 // deno-lint-ignore-file no-explicit-any
+// Edge Function: website monitor with DOWN-only alerts and manual-test cooldown bypass
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
+// =========================
+// Config (adjust as needed)
+// =========================
+const COOLDOWN_MINUTES = 60;        // cooldown for automatic checks
+const DISABLE_ALERTS = false;       // set true to globally silence emails
+const TIMEOUT_MS = 15_000;          // fetch timeout per monitor
+const MANUAL_COUNTS_FOR_COOLDOWN = true; // if true, manual send updates last_alert_sent
+
+// IMPORTANT: set these secrets in your project (Dashboard > Edge Functions > Secrets)
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FALLBACK_TO = Deno.env.get("ALERT_FALLBACK_TO") || null;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-type Monitor = {
+// If you use a different table/columns, update these mappings:
+const TABLE_MONITORS = "monitors";
+type MonitorRow = {
   id: string;
-  url: string;
   name?: string | null;
-  status?: string | null;         // unknown enum/text in your schema
-  email_to?: string | null;
-  user_id?: string | null;
-  last_alert_sent?: string | null; // timestamp for cooldown tracking
+  url: string;
+  enabled?: boolean | null;
+  status?: "UP" | "DOWN" | null;          // previous status saved in DB
+  last_alert_sent?: string | null;        // ISO timestamp in DB (nullable)
+  notify_email?: string | null;           // where to send alerts
+  // add any other columns you keep
 };
 
-const TIMEOUT_MS = 15000;
-const COOLDOWN_MINUTES = 60;
-
-function withTimeout(ms: number) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  return { signal: controller.signal, clear: () => clearTimeout(id) };
-}
-
-async function ping(url: string) {
-  const t0 = Date.now();
-  const ctl = withTimeout(TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { method: "GET", signal: ctl.signal });
-    const ok = res.ok;
-    const status = res.status;
-    const text = ok ? "" : await res.text().catch(() => "");
-    return { ok, status, ms: Date.now() - t0, error: ok ? undefined : `HTTP ${status} ${text?.slice(0, 200)}` };
-  } catch (e: any) {
-    return { ok: false, status: 0, ms: Date.now() - t0, error: e?.message || "fetch_error" };
-  } finally {
-    ctl.clear();
-  }
-}
-
-function candidateStatuses(next: "UP" | "DOWN"): string[] {
-  // Try likely values to satisfy your monitors_status_check
-  return next === "UP"
-    ? ["UP", "up", "ONLINE", "Online", "online", "Ok", "OK", "Healthy"]
-    : ["DOWN", "down", "OFFLINE", "Offline", "offline", "Fail", "FAILED", "Unhealthy"];
-}
-
-async function tryUpdateStatus(
-  supabase: ReturnType<typeof createClient>,
-  monitorId: string,
-  next: "UP" | "DOWN"
-): Promise<{ ok: boolean; value?: string; error?: any }> {
-  const candidates = candidateStatuses(next);
-
-  // We also try with/without updated_at for portability
-  for (const value of candidates) {
-    // first attempt with updated_at
-    let { error } = await supabase
-      .from("monitors")
-      .update({ status: value, updated_at: new Date().toISOString() })
-      .eq("id", monitorId);
-    if (!error) return { ok: true, value };
-    // If the error is "unknown column updated_at" (PGRST204), retry without it
-    if (error?.code === "PGRST204") {
-      const { error: e2 } = await supabase.from("monitors").update({ status: value }).eq("id", monitorId);
-      if (!e2) return { ok: true, value };
-      // 23514 = check constraint violation → continue to next candidate
-      if (e2.code !== "23514") return { ok: false, error: e2 };
-    } else if (error?.code !== "23514") {
-      // Not a check-constraint issue → stop
-      return { ok: false, error };
-    }
-    // else 23514, try next candidate
-  }
-  return { ok: false, error: { message: "All status candidates rejected by monitors_status_check" } };
-}
-
-async function getRecipientEmail(
-  supabase: ReturnType<typeof createClient>,
-  m: Monitor
-): Promise<string | null> {
-  if (m.email_to) return m.email_to;
-  
-  // Try to get email from profiles table
-  if (m.user_id) {
-    const { data, error } = await supabase.from("profiles").select("email").eq("user_id", m.user_id).maybeSingle();
-    if (!error && (data as any)?.email) return (data as any).email as string;
-  }
-  
-  return FALLBACK_TO; // last resort so we can test end-to-end
-}
-
-async function shouldSendEmailWithCooldown(monitor: Monitor, isManualTest: boolean): Promise<boolean> {
-  // Manual tests always bypass cooldown
-  if (isManualTest) {
-    return true;
-  }
-  
-  // If no last alert time, allow sending
-  if (!monitor.last_alert_sent) {
-    return true;
-  }
-  
-  // Check if cooldown period has passed (60 minutes)
-  const lastAlertTime = new Date(monitor.last_alert_sent);
-  const now = new Date();
-  const timeDifferenceMinutes = (now.getTime() - lastAlertTime.getTime()) / (1000 * 60);
-  
-  const canSend = timeDifferenceMinutes >= COOLDOWN_MINUTES;
-  console.log(`Cooldown check for monitor ${monitor.id}: last alert ${timeDifferenceMinutes.toFixed(1)} minutes ago, can send: ${canSend}`);
-  
-  return canSend;
-}
-
-async function invokeSendEmail(
-  supabase: ReturnType<typeof createClient>,
-  payload: any
-) {
-  console.log("Invoking send-alert-email with payload:", JSON.stringify(payload, null, 2));
-  
-  try {
-    const { data, error } = await supabase.functions.invoke("send-alert-email", { body: payload });
-    if (error) {
-      console.error("invoke send-alert-email failed:", error);
-      throw error;
-    }
-    console.log("send-alert-email invoked successfully:", data);
-    return data;
-  } catch (error) {
-    console.error("Error invoking send-alert-email:", error);
-    throw error;
-  }
-}
-
+// CORS
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
+  "cache-control": "no-store",
 };
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+// ===============
+// Utility helpers
+// ===============
+function nowIso(): string {
+  return new Date().toISOString();
+}
 
-  const body = await req.json().catch(() => ({}));
-  const targetMonitorId: string | undefined = body?.monitor_id || body?.monitorId;
+function minutesSince(iso: string): number {
+  const then = new Date(iso).getTime();
+  return (Date.now() - then) / 60000;
+}
 
-  // Load monitors
-  let monitors: Monitor[] = [];
+async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  const t = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+  );
+  return Promise.race([p, t]);
+}
+
+// ==================================
+// Data access: load & update monitors
+// ==================================
+async function loadMonitors(targetMonitorId?: string): Promise<MonitorRow[]> {
   if (targetMonitorId) {
-    const { data, error } = await supabase.from("monitors").select("*").eq("id", targetMonitorId);
-    if (error) return new Response(error.message, { 
-      status: 500,
-      headers: corsHeaders
-    });
-    monitors = data as Monitor[];
-  } else {
-    const { data, error } = await supabase.from("monitors").select("*").neq("url", null);
-    if (error) return new Response(error.message, { 
-      status: 500,
-      headers: corsHeaders
-    });
-    monitors = data as Monitor[];
+    const { data, error } = await supabase
+      .from<MonitorRow>(TABLE_MONITORS)
+      .select("*")
+      .eq("id", targetMonitorId)
+      .limit(1);
+    if (error) throw error;
+    return (data ?? []).filter((m) => !!m);
   }
 
-  const results: any[] = [];
+  // load all enabled monitors
+  const { data, error } = await supabase
+    .from<MonitorRow>(TABLE_MONITORS)
+    .select("*")
+    .eq("enabled", true);
+  if (error) throw error;
+  return data ?? [];
+}
 
-  for (const m of monitors) {
-    // Treat any non-"down" string as UP unless it clearly looks like a down value
-    const prev = (m.status || "").toString().toLowerCase();
-    const prevStatus: "UP" | "DOWN" = ["down", "offline", "fail", "failed", "unhealthy"].includes(prev) ? "DOWN" : "UP";
+async function updateMonitorStatus(id: string, nextStatus: "UP" | "DOWN") {
+  const { error } = await supabase
+    .from(TABLE_MONITORS)
+    .update({ status: nextStatus })
+    .eq("id", id);
+  if (error) throw error;
+}
 
-    const probe = await ping(m.url);
-    const nextStatus: "UP" | "DOWN" = probe.ok ? "UP" : "DOWN";
-    const transitioned = nextStatus !== prevStatus;
+async function markLastAlertSent(id: string) {
+  const { error } = await supabase
+    .from(TABLE_MONITORS)
+    .update({ last_alert_sent: nowIso() })
+    .eq("id", id);
+  if (error) throw error;
+}
 
-    // Update status using retry strategy
-    let updateOk = true;
-    let storedAs: string | undefined;
-    if (transitioned) {
-      const upd = await tryUpdateStatus(supabase, m.id, nextStatus);
-      updateOk = upd.ok;
-      storedAs = upd.value;
-      if (!upd.ok) console.error("update monitor failed", m.id, upd.error);
+// =====================
+// Cooldown + email send
+// =====================
+async function shouldSendEmailWithCooldown(m: MonitorRow): Promise<boolean> {
+  if (!m.last_alert_sent) return true;
+  return minutesSince(m.last_alert_sent) >= COOLDOWN_MINUTES;
+}
+
+// IMPORTANT: Replace this with your real email integration.
+// You might call another Edge Function, Resend, SMTP, etc.
+async function invokeSendEmail(args: {
+  monitor: MonitorRow;
+  type: "DOWN"; // we only send DOWN alerts
+  probeResult: { ok: boolean; status?: number; error?: string | null };
+}) {
+  if (DISABLE_ALERTS) return { ok: true, skipped: true };
+
+  const to = args.monitor.notify_email;
+  if (!to) {
+    console.warn(`Monitor ${args.monitor.id} has no notify_email; skipping email.`);
+    return { ok: false, skipped: true };
+  }
+
+  // Example log-only sender (replace with real implementation)
+  console.log(
+    `[EMAIL] To=${to} | Monitor="${args.monitor.name ?? args.monitor.id}" | Type=${args.type} | URL=${args.monitor.url} | HTTP=${
+      args.probeResult.status ?? "n/a"
+    } | ok=${args.probeResult.ok} | error=${args.probeResult.error ?? "none"}`
+  );
+
+  // Simulate async send
+  await new Promise((r) => setTimeout(r, 25));
+  return { ok: true, skipped: false };
+}
+
+// ======
+// Probe
+// ======
+async function probeUrl(url: string): Promise<{ ok: boolean; status?: number; error?: string | null }> {
+  try {
+    const res = await withTimeout(fetch(url, { redirect: "follow" }), TIMEOUT_MS);
+    return { ok: res.ok, status: res.status, error: null };
+  } catch (e: any) {
+    return { ok: false, status: undefined, error: e?.message ?? String(e) };
+  }
+}
+
+// =====================
+// HTTP request handling
+// =====================
+Deno.serve(async (req: Request) => {
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    // Accept monitor_id via POST JSON or query string (?monitor_id=...)
+    let targetMonitorId: string | undefined;
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      if (typeof body?.monitor_id === "string") targetMonitorId = body.monitor_id;
+    } else if (req.method === "GET") {
+      const url = new URL(req.url);
+      const qid = url.searchParams.get("monitor_id");
+      if (qid) targetMonitorId = qid;
     }
 
-    // Check if we should send email
-    const isManualTest = targetMonitorId && monitors.length === 1;
-    const shouldSendEmailForTransition = transitioned && nextStatus === "DOWN" && await shouldSendEmailWithCooldown(m, isManualTest);
-    const shouldSendEmail = shouldSendEmailForTransition || isManualTest;
-    
-    if (shouldSendEmail) {
-      console.log(`Sending email alert - transitioned: ${transitioned}, manual test: ${isManualTest}, cooldown check: ${shouldSendEmailForTransition}`);
-      
-      try {
-        await invokeSendEmail(supabase, {
-          type: nextStatus, // DOWN or UP
-          monitor: { id: m.id, name: m.name ?? m.url, url: m.url },
-          user_id: m.user_id, // Let send-alert-email function resolve the email
-          probe: { ok: probe.ok, status: probe.status, ms: probe.ms, error: probe.error },
-          occurred_at: new Date().toISOString(),
-        });
-        
-        // Update last_alert_sent timestamp after successful email
-        await supabase
-          .from("monitors")
-          .update({ last_alert_sent: new Date().toISOString() })
-          .eq("id", m.id);
-          
-        console.log(`Email alert sent for monitor ${m.id} (${nextStatus})`);
-      } catch (error) {
-        console.error(`Failed to send email for monitor ${m.id}:`, error);
+    const monitors = await loadMonitors(targetMonitorId);
+    const isManualTest = Boolean(targetMonitorId) && monitors.length === 1;
+
+    const results: any[] = [];
+
+    for (const m of monitors) {
+      // Skip disabled (defensive, in case loadMonitors returns any)
+      if (m.enabled === false) {
+        results.push({ id: m.id, skipped: true, reason: "disabled" });
+        continue;
       }
+
+      // 1) Probe
+      const probe = await probeUrl(m.url);
+      const nextStatus: "UP" | "DOWN" = probe.ok ? "UP" : "DOWN";
+      const prevStatus: "UP" | "DOWN" = (m.status ?? "UP") as any;
+      const transitioned = nextStatus !== prevStatus;
+
+      // 2) Decide whether we want an alert
+      //    - Manual: send only if currently DOWN (transition doesn't matter)
+      //    - Auto: send only on transition to DOWN
+      const wantsAlert =
+        (isManualTest && nextStatus === "DOWN") ||
+        (!isManualTest && transitioned && nextStatus === "DOWN");
+
+      // 3) Cooldown rule:
+      //    - Manual tests BYPASS cooldown
+      //    - Auto checks MUST pass cooldown
+      const cooldownOK = isManualTest ? true : await shouldSendEmailWithCooldown(m);
+
+      const shouldSendEmail = wantsAlert && cooldownOK && !DISABLE_ALERTS;
+
+      // 4) Send email if needed (DOWN-only)
+      let email: { ok: boolean; skipped?: boolean } | null = null;
+      if (shouldSendEmail) {
+        email = await invokeSendEmail({
+          monitor: m,
+          type: "DOWN",
+          probeResult: probe,
+        });
+
+        // Update last_alert_sent:
+        // - If MANUAL_COUNTS_FOR_COOLDOWN is true: update on all sends.
+        // - Otherwise: only update for automatic sends.
+        if (email.ok && (!isManualTest || MANUAL_COUNTS_FOR_COOLDOWN)) {
+          await markLastAlertSent(m.id);
+        }
+      }
+
+      // 5) Persist the new status (always)
+      await updateMonitorStatus(m.id, nextStatus);
+
+      results.push({
+        id: m.id,
+        name: m.name ?? null,
+        url: m.url,
+        prev_status: prevStatus,
+        next_status: nextStatus,
+        transitioned,
+        is_manual_test: isManualTest,
+        wants_alert: wantsAlert,
+        cooldown_ok: cooldownOK,
+        email_sent: Boolean(shouldSendEmail && email?.ok),
+        email_skipped: email?.skipped ?? false,
+        http: { ok: probe.ok, status: probe.status ?? null, error: probe.error },
+      });
     }
 
-    results.push({
-      monitor_id: m.id,
-      prevStatus,
-      nextStatus,
-      transitioned,
-      http_status: probe.status,
-      ms: probe.ms,
-      error: probe.error,
-      updateOk,
-      storedStatusValue: storedAs ?? null,
+    return new Response(JSON.stringify({ ok: true, now: nowIso(), results }, null, 2), {
+      headers: { "content-type": "application/json", ...corsHeaders },
     });
+  } catch (err: any) {
+    console.error(err);
+    return new Response(
+      JSON.stringify({ ok: false, error: err?.message ?? String(err) }, null, 2),
+      { status: 500, headers: { "content-type": "application/json", ...corsHeaders } },
+    );
   }
-
-  return new Response(JSON.stringify({ ok: true, results }, null, 2), {
-    headers: { 
-      "content-type": "application/json",
-      ...corsHeaders
-    },
-  });
 });
