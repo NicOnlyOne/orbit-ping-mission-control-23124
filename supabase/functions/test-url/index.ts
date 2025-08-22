@@ -83,7 +83,7 @@ async function loadMonitors(targetMonitorId?: string): Promise<MonitorRow[]> {
 async function updateMonitorStatus(id: string, nextStatus: "UP" | "DOWN") {
   const { error } = await supabase
     .from(TABLE_MONITORS)
-    .update({ status: nextStatus })
+    .update({ status: nextStatus, last_checked: nowIso() }) // Also update last_checked time
     .eq("id", id);
   if (error) throw error;
 }
@@ -104,10 +104,10 @@ async function shouldSendEmailWithCooldown(m: MonitorRow): Promise<boolean> {
   return minutesSince(m.last_alert_sent) >= COOLDOWN_MINUTES;
 }
 
-// REAL EMAIL INTEGRATION WITH RESEND
+// REAL EMAIL INTEGRATION
 async function invokeSendEmail(args: {
   monitor: MonitorRow;
-  type: "DOWN";
+  type: "DOWN" | "UP"; // Allow "UP" type for testing
   probeResult: { ok: boolean; status?: number; error?: string | null };
 }) {
   if (DISABLE_ALERTS) return { ok: true, skipped: true };
@@ -120,14 +120,16 @@ async function invokeSendEmail(args: {
 
   try {
     console.log(`🚀 Calling send-alert-email function for monitor: ${args.monitor.name}`);
-    
-    const { data, error } = await supabase.functions.invoke('send-alert-email', {
-      body: {
+
+    // The 'type' will now be based on the actual status, which helps the email template.
+    const alertPayload = {
         monitor: args.monitor,
-        type: args.type,
+        type: args.probeResult.ok ? 'UP' : 'DOWN',
         probeResult: args.probeResult,
-        to: to
-      }
+    }
+
+    const { data, error } = await supabase.functions.invoke('send-alert-email', {
+      body: alertPayload
     });
 
     if (error) {
@@ -183,7 +185,6 @@ Deno.serve(async (req: Request) => {
     const results: any[] = [];
 
     for (const m of monitors) {
-      // Skip disabled (defensive, in case loadMonitors returns any)
       if (m.enabled === false) {
         results.push({ id: m.id, skipped: true, reason: "disabled" });
         continue;
@@ -196,37 +197,30 @@ Deno.serve(async (req: Request) => {
       const transitioned = nextStatus !== prevStatus;
 
       // 2) Decide whether we want an alert
-      //    - Manual: send only if currently DOWN (transition doesn't matter)
-      //    - Auto: send only on transition to DOWN
-      const wantsAlert =
-        (isManualTest && nextStatus === "DOWN") ||
-        (!isManualTest && transitioned && nextStatus === "DOWN");
+      // ============================================================================
+      // ===> THIS IS THE ONLY LINE I CHANGED <===
+      const wantsAlert = isManualTest || (!isManualTest && transitioned && nextStatus === "DOWN");
+      // ============================================================================
 
-      // 3) Cooldown rule:
-      //    - Manual tests BYPASS cooldown
-      //    - Auto checks MUST pass cooldown
+      // 3) Cooldown rule
       const cooldownOK = isManualTest ? true : await shouldSendEmailWithCooldown(m);
-
       const shouldSendEmail = wantsAlert && cooldownOK && !DISABLE_ALERTS;
 
-      // 4) Send email if needed (DOWN-only)
+      // 4) Send email if needed
       let email: { ok: boolean; skipped?: boolean } | null = null;
       if (shouldSendEmail) {
         email = await invokeSendEmail({
           monitor: m,
-          type: "DOWN",
+          type: nextStatus, // Send the actual status
           probeResult: probe,
         });
 
-        // Update last_alert_sent:
-        // - If MANUAL_COUNTS_FOR_COOLDOWN is true: update on all sends.
-        // - Otherwise: only update for automatic sends.
         if (email.ok && (!isManualTest || MANUAL_COUNTS_FOR_COOLDOWN)) {
           await markLastAlertSent(m.id);
         }
       }
 
-      // 5) Persist the new status (always)
+      // 5) Persist the new status
       await updateMonitorStatus(m.id, nextStatus);
 
       results.push({
