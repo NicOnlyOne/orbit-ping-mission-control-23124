@@ -78,18 +78,13 @@ serve(async (req) => {
 
     // Step 3: Probe the URL
     const result = await probeUrl(monitor.url);
-
-    // ====================================================================
-    // THE FIX IS HERE! 
-    // We now use the direct result ('UP' or 'DOWN') which the DB expects.
-    // ====================================================================
     const databaseStatus = result.status; 
 
     const updatePayload = {
       status: databaseStatus, // This will be 'UP' or 'DOWN'
       last_checked: new Date().toISOString(),
       response_time: result.responseTime,
-      error_message: result.message // Save the specific error message
+      error_message: result.message
     };
 
     const { error: updateError } = await supabase
@@ -98,18 +93,27 @@ serve(async (req) => {
       .eq("id", monitorId);
 
     if (updateError) {
-      // This will now clearly report the constraint violation if it happens again
       throw new Error(`Failed to update monitor ${monitorId}. DB Error: ${updateError.message}`);
     }
 
-    // Step 4: Return a simple, safe success response.
-    return new Response(JSON.stringify({ success: true, status: databaseStatus }), {
+    // ====================================================================
+    // THE FIX IS HERE! 
+    // We translate the DB status ('UP'/'DOWN') to the frontend status
+    // ('online'/'offline') before sending the response.
+    // ====================================================================
+    const frontendStatus = databaseStatus === 'UP' ? 'online' : 'offline';
+
+    // Step 4: Return a response the frontend can understand.
+    return new Response(JSON.stringify({ 
+      status: frontendStatus, 
+      responseTime: result.responseTime,
+      errorMessage: result.message
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
 
   } catch (err) {
-    // This is the safety net. It catches any error and reports it cleanly.
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("test-url function crashed:", errorMessage);
     return new Response(JSON.stringify({ error: errorMessage }), {
