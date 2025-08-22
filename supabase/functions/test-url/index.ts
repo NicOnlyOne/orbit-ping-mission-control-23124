@@ -9,26 +9,29 @@ const corsHeaders = {
 
 const TIMEOUT_MS = 15_000;
 
+// This function probes the URL and returns its status
 async function probeUrl(url: string) {
   const startTime = Date.now();
   try {
     const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(TIMEOUT_MS) });
     const responseTime = Date.now() - startTime;
     return {
-      status: response.ok ? "UP" : "DOWN",
-      message: `HTTP ${response.status}`,
+      ok: response.ok,
+      status: response.status,
       responseTime
-    } as const;
+    };
   } catch (err) {
     const responseTime = Date.now() - startTime;
+    // Ensure we capture the error message correctly
+    const errorMessage = err instanceof Error ? err.message : String(err);
     return {
-      status: "DOWN",
-      message: err.message,
+      ok: false,
+      status: 0, // Indicates a network error, not an HTTP status
+      error: errorMessage,
       responseTime
-    } as const;
+    };
   }
 }
-
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,57 +40,64 @@ Deno.serve(async (req) => {
 
   try {
     const { monitorId } = await req.json();
+    if (!monitorId) throw new Error("monitorId is required");
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const { data: monitor, error: fetchError } = await supabase.from("monitors").select("*").eq("id", monitorId).single();
-    if (fetchError || !monitor) throw new Error("Monitor not found");
+    if (fetchError || !monitor) throw new Error(`Monitor not found: ${fetchError?.message}`);
+    
+    // --- THIS IS THE CRITICAL CHANGE ---
+    // We await the probe and then decide what to do with the result.
+    const probeResult = await probeUrl(monitor.url);
+    const isUp = probeResult.ok;
+    const errorMessage = isUp ? null : (probeResult.error || `HTTP ${probeResult.status}`);
 
-    const probe = await probeUrl(monitor.url);
     const updatePayload = {
       last_checked: new Date().toISOString(),
-      status: probe.status,
-      response_time: probe.responseTime,
-      error_message: probe.message,
+      status: isUp ? "UP" : "DOWN",
+      response_time: probeResult.responseTime,
+      error_message: errorMessage,
     };
-    
-    if (probe.status !== 'UP') {
-        console.log(`Manual test for ${monitorId} is DOWN. Bypassing cooldown and sending alert.`);
-        const resendApiKey = Deno.env.get("RESEND_API_KEY");
-        if (monitor.notify_email && resendApiKey) {
-          // --- THIS IS THE MODIFIED PART ---
-          const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${resendApiKey}`,
-            },
-            body: JSON.stringify({
-              from: "Mission Control <alerts@lovable.app>",
-              to: [monitor.notify_email],
-              subject: `🚨 Alert: Your mission "${monitor.name}" is DOWN`,
-              html: `<p>Commander,</p><p>A manual signal test for mission <strong>${monitor.name}</strong> (${monitor.url}) has failed.</p><p>Our sensors show it is unresponsive.</p><p>- OrbitPing Mission Control</p>`,
-            }),
-          });
-          // Add logging to see the result
-          console.log(`Resend API response status: ${res.status}`);
-          const responseBody = await res.json();
-          console.log(`Resend API response body: ${JSON.stringify(responseBody)}`);
-          // --- END OF MODIFICATION ---
+
+    if (!isUp) {
+      console.log(`Manual test for ${monitorId} is DOWN. Bypassing cooldown and sending alert.`);
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (monitor.notify_email && resendApiKey) {
+        // Now, we await the email sending process
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({
+            from: "Mission Control <alerts@lovable.app>",
+            to: [monitor.notify_email],
+            subject: `🚨 Alert: Your mission "${monitor.name}" is DOWN`,
+            html: `<p>Commander,</p><p>A manual signal test for mission <strong>${monitor.name}</strong> (${monitor.url}) has failed.</p><p>Our sensors show it is unresponsive. Reason: ${errorMessage}</p><p>- OrbitPing Mission Control</p>`,
+          }),
+        });
+        
+        // And we log the result from Resend
+        const responseBody = await res.json();
+        console.log(`Resend API response: ${res.status} ${JSON.stringify(responseBody)}`);
       }
     }
     
-    const { error: updateError } = await supabase.from("monitors").update(updatePayload).eq("id", monitorId);
-    if (updateError) throw new Error(`DB update failed: ${updateError.message}`);
+    await supabase.from("monitors").update(updatePayload).eq("id", monitorId);
 
-    return new Response(JSON.stringify({ status: probe.status === 'UP' ? 'online' : 'offline', responseTime: probe.responseTime }), {
+    return new Response(JSON.stringify({ status: isUp ? 'online' : 'offline', responseTime: probeResult.responseTime }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (err) {
-    return new Response(String(err?.message ?? err), {
+    const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+    console.error("Error in test-url function:", errorMessage);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });
