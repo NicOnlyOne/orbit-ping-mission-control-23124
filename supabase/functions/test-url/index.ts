@@ -50,7 +50,6 @@ serve(async (req) => {
     // SCENARIO 1: Anonymous URL Check (no monitorId)
     if (url && !monitorId) {
       const result = await probeUrl(url);
-      // For anonymous checks, we can still return UP/DOWN
       return new Response(JSON.stringify({ status: result.status }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
@@ -71,24 +70,24 @@ serve(async (req) => {
           .single();
 
         if (fetchError || !monitor) {
-          throw new Error(`Monitor with ID ${monitorId} not found.`);
+          return new Response(JSON.stringify({ error: `Monitor with ID ${monitorId} not found.` }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 404,
+          });
         }
         monitorUrl = monitor.url;
       }
       
       const result = await probeUrl(monitorUrl);
-
-      // <<< LOVABLE AI FIX: Translate status to trigger the email function
-      // The database trigger expects 'online' or 'offline', not 'UP' or 'DOWN'.
       const databaseStatus = result.status === 'UP' ? 'online' : 'offline';
 
       const updatedMonitorData = {
-        status: databaseStatus, // Use the correct status word
+        status: databaseStatus,
         response_time: result.responseTime,
         last_checked: new Date().toISOString()
       };
 
-      const { data: updatedData, error: updateError } = await supabase
+      const { data: finalData, error: updateError } = await supabase
         .from("monitors")
         .update(updatedMonitorData)
         .eq("id", monitorId)
@@ -98,17 +97,29 @@ serve(async (req) => {
       if (updateError) {
         throw updateError;
       }
+
+      // <<< LOVABLE AI FIX: Added safety check.
+      // This prevents the 500 error if the update fails to find the monitor.
+      if (!finalData) {
+        return new Response(JSON.stringify({ error: `Failed to update monitor ${monitorId}. It may not exist.` }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 404,
+          });
+      }
       
-      // Return the original UP/DOWN status to the frontend for consistency
-      return new Response(JSON.stringify({ ...updatedData, status: result.status }), {
+      return new Response(JSON.stringify(finalData), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
 
-    throw new Error("Invalid request. Provide 'url' for anonymous check or 'monitorId' for authenticated check.");
+    return new Response(JSON.stringify({ error: "Invalid request. Provide 'url' or 'monitorId'." }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
+    });
 
   } catch (err) {
+    console.error("Critical error in test-url function:", err);
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
