@@ -45,13 +45,12 @@ export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProp
         throw new Error(functionError.message);
       }
       
-      // The backend returns a simple object. We need to map it to the TestResult format.
-      const probeResult = data.result;
+       // The backend returns a flat object. We map it directly to the TestResult format.
       const newResult: TestResult = {
-        status: probeResult.ok ? 'online' : 'offline',
+        status: data.ok ? 'online' : 'offline',
         responseTime: data.duration,
-        statusCode: probeResult.status,
-        errorMessage: probeResult.error,
+        statusCode: data.status,
+        errorMessage: data.error,
       };
 
       setResult(newResult);
