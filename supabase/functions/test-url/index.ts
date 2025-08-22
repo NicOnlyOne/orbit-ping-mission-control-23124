@@ -99,16 +99,9 @@ async function markLastAlertSent(id: string) {
 // =====================
 // Cooldown + email send
 // =====================
-async function shouldSendEmailWithCooldown(m: MonitorRow): Promise<boolean> {
-  if (!m.last_alert_sent) return true;
-  return minutesSince(m.last_alert_sent) >= COOLDOWN_MINUTES;
-}
-
-// IMPORTANT: Replace this with your real email integration.
-// You might call another Edge Function, Resend, SMTP, etc.
 async function invokeSendEmail(args: {
   monitor: MonitorRow;
-  type: "DOWN"; // we only send DOWN alerts
+  type: "DOWN";
   probeResult: { ok: boolean; status?: number; error?: string | null };
 }) {
   if (DISABLE_ALERTS) return { ok: true, skipped: true };
@@ -119,17 +112,42 @@ async function invokeSendEmail(args: {
     return { ok: false, skipped: true };
   }
 
-  // Example log-only sender (replace with real implementation)
-  console.log(
-    `[EMAIL] To=${to} | Monitor="${args.monitor.name ?? args.monitor.id}" | Type=${args.type} | URL=${args.monitor.url} | HTTP=${
-      args.probeResult.status ?? "n/a"
-    } | ok=${args.probeResult.ok} | error=${args.probeResult.error ?? "none"}`
-  );
+  // Send email via Resend
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${RESEND_API_KEY}`, // Add your Resend API key in env vars
+      },
+      body: JSON.stringify({
+        from: "alerts@yourdomain.com", // Replace with your verified Resend domain
+        to: [to],
+        subject: `🚨 Mission Critical Alert: ${args.monitor.name} is DOWN`,
+        html: `
+          <h1>🚨 Mission Alert: ${args.monitor.name} is DOWN</h1>
+          <p><strong>URL:</strong> ${args.monitor.url}</p>
+          <p><strong>Error:</strong> ${args.probeResult.error || "Unknown error"}</p>
+          <p><strong>Status Code:</strong> ${args.probeResult.status || "N/A"}</p>
+          <p>Take action: <a href="${args.monitor.url}">Check the site</a></p>
+          <p>Or <a href="https://orbit-ping-mission-control.lovable.app">visit Mission Control</a></p>
+        `,
+      }),
+    });
 
-  // Simulate async send
-  await new Promise((r) => setTimeout(r, 25));
-  return { ok: true, skipped: false };
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Resend error:", error);
+      return { ok: false, error };
+    }
+
+    return { ok: true };
+  } catch (error) {
+    console.error("Failed to send email:", error);
+    return { ok: false, error };
+  }
 }
+
 
 // ======
 // Probe
