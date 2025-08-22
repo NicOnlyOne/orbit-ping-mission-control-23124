@@ -3,8 +3,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
 // --- Config ---
-const COOLDOWN_MINUTES = 60; // How many minutes to wait before sending another alert for the same site
-const TIMEOUT_MS = 15_000; // 15 seconds
+const COOLDOWN_MINUTES = 60; 
+const TIMEOUT_MS = 15_000;
 
 // --- Types ---
 type Monitor = {
@@ -44,7 +44,6 @@ Deno.serve(async () => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // 1. Fetch all monitors
   const { data: monitors, error: fetchError } = await supabase
     .from("monitors")
     .select<"*", Monitor>("id, name, url, status, last_alert_sent, notify_email");
@@ -56,12 +55,10 @@ Deno.serve(async () => {
 
   const now = new Date();
   
-  // 2. Check each monitor
   const checkPromises = monitors.map(async (m) => {
     const probe = await probeUrl(m.url);
 
     if (probe.status === "UP") {
-       // If the site was previously down, mark it as up. Otherwise, just update check time.
       if (m.status === "DOWN") {
         console.log(`Monitor ${m.id} (${m.url}) is back UP.`);
       }
@@ -72,7 +69,6 @@ Deno.serve(async () => {
         error_message: null
       }).eq("id", m.id);
     } else {
-      // Monitor is DOWN
       console.log(`Monitor ${m.id} (${m.url}) is DOWN. Reason: ${probe.message}`);
       
       const shouldSendAlert = !m.last_alert_sent || 
@@ -81,10 +77,10 @@ Deno.serve(async () => {
       if (shouldSendAlert) {
         console.log(`Cooldown passed for ${m.id}. Sending alert.`);
         
-        // --- Directly Send Email Here ---
         const resendApiKey = Deno.env.get("RESEND_API_KEY");
         if (m.notify_email && resendApiKey) {
-          fetch("https://api.resend.com/emails", {
+          // --- THIS IS THE MODIFIED PART ---
+          const res = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -97,21 +93,23 @@ Deno.serve(async () => {
               html: `<p>Commander,</p><p>Our sensors show that your mission <strong>${m.name}</strong> (${m.url}) is unresponsive.</p><p>We will continue to monitor the situation.</p><p>- OrbitPing Mission Control</p>`,
             }),
           });
+          // Add logging to see the result
+          console.log(`Resend API response status: ${res.status}`);
+          const responseBody = await res.json();
+          console.log(`Resend API response body: ${JSON.stringify(responseBody)}`);
+          // --- END OF MODIFICATION ---
         }
-        // --- End of Email Logic ---
 
-        // Update status and the alert timestamp
         await supabase.from("monitors").update({ 
           status: "DOWN", 
           last_checked: now.toISOString(),
           error_message: probe.message,
           response_time: probe.responseTime,
-          last_alert_sent: now.toISOString() // Mark that we just sent an alert
+          last_alert_sent: now.toISOString()
         }).eq("id", m.id);
 
       } else {
         console.log(`Monitor ${m.id} is down, but within cooldown. Skipping alert.`);
-        // Update status but NOT the alert timestamp
         await supabase.from("monitors").update({ 
           status: "DOWN", 
           last_checked: now.toISOString(),
