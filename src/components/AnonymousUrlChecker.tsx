@@ -1,199 +1,137 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle, Clock, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
-
-interface TestResult {
-  status: 'online' | 'offline' | 'warning';
-  responseTime: number;
-  errorMessage?: string;
-  statusCode?: number;
-}
+import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, CheckCircle, RefreshCw, Rocket } from 'lucide-react';
+import { TestResult } from '@/lib/types';
+import { Link } from 'react-router-dom';
 
 interface AnonymousUrlCheckerProps {
-  onConvertToUser?: (url: string) => void;
+  onConvertToUser: (url: string) => void;
 }
 
-export const AnonymousUrlChecker = ({ onConvertToUser }: AnonymousUrlCheckerProps) => {
-  const [url, setUrl] = useState("");
+export function AnonymousUrlChecker({ onConvertToUser }: AnonymousUrlCheckerProps) {
+  const [url, setUrl] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
-  const [showConversion, setShowConversion] = useState(false);
 
-  const handleCheck = async () => {
-    if (!url.trim()) return;
-    
-    setIsChecking(true);
-    setResult(null);
-    setShowConversion(false);
-
+  const checkUrl = async () => {
+    if (!url) return;
     try {
-      const { data, error } = await supabase.functions.invoke('test-url', {
-        body: { url: url.trim() }
+      setIsChecking(true);
+      setResult(null);
+
+      // For anonymous users, we need to be explicit with headers and body format.
+      const { data, error } = await supabase.functions.invoke("test-url", {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
       });
 
       if (error) throw error;
-
-      setResult(data as TestResult);
-      setShowConversion(true);
       
-      // Store in localStorage for potential conversion
-      localStorage.setItem('pending-mission-url', url.trim());
-      
+      setResult(data);
     } catch (error) {
       console.error('Error testing URL:', error);
       setResult({
-        status: 'offline',
+        status: 'DOWN',
         responseTime: 0,
-        errorMessage: 'Failed to test URL'
+        message: (error instanceof Error ? error.message : 'An unknown error occurred.'),
       });
     } finally {
       setIsChecking(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'online':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'warning':
-        return <Clock className="h-5 w-5 text-yellow-500" />;
-      case 'offline':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return null;
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      checkUrl();
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'online':
-        return 'Online';
-      case 'warning':
-        return 'Slow Response';
-      case 'offline':
-        return 'Offline';
-      default:
-        return 'Unknown';
-    }
+  const handleSignUp = () => {
+    onConvertToUser(url);
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card className="bg-space-medium border-space-light">
-        <CardHeader>
-          <CardTitle className="text-center text-xl">
-            🔍 Free URL Health Check
-          </CardTitle>
-          <p className="text-center text-muted-foreground">
-            Test any website instantly - no registration required
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <Label htmlFor="check-url" className="text-sm font-medium">
-              Website URL
-            </Label>
-            <Input
-              id="check-url"
-              placeholder="https://your-website.com"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="bg-space-dark border-space-light mt-2"
-              onKeyPress={(e) => e.key === 'Enter' && !isChecking && handleCheck()}
-            />
-          </div>
-
-          <Button 
-            variant="rocket" 
-            className="w-full"
-            disabled={!url.trim() || isChecking}
-            onClick={handleCheck}
-          >
+    <Card className="w-full max-w-xl mx-auto shadow-lg bg-card/80 backdrop-blur-sm">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl font-bold">Is Your Mission Online?</CardTitle>
+        <CardDescription className="text-lg text-muted-foreground">
+          Perform a real-time signal check from our global network.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex w-full items-center space-x-2 mb-4">
+          <Input
+            type="text"
+            placeholder="https://your-website.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyPress={handleKeyPress}
+            disabled={isChecking}
+            className="text-base"
+          />
+          <Button onClick={checkUrl} disabled={isChecking || !url} size="lg" variant="satellite">
             {isChecking ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Checking Status...
-              </>
+              <RefreshCw className="h-5 w-5 animate-spin" />
             ) : (
-              <>
-                🔍 Check Website Status
-              </>
+              'Ping Signal'
             )}
           </Button>
+        </div>
 
-          {result && (
-            <Card className="bg-space-dark border-space-light">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(result.status)}
-                    <span className="font-medium">{getStatusText(result.status)}</span>
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    {result.responseTime}ms
-                  </span>
-                </div>
-                
-                <div className="text-sm text-muted-foreground mb-2">
-                  URL: {url}
-                </div>
+        {result && (
+          <div className={`mt-6 p-4 rounded-lg flex items-center gap-4 ${result.status === 'UP' ? 'bg-green-900/50 border border-green-700' : 'bg-red-900/50 border border-red-700'}`}>
+            {result.status === 'UP' ? (
+              <CheckCircle className="h-8 w-8 text-status-online" />
+            ) : (
+              <AlertCircle className="h-8 w-8 text-status-offline" />
+            )}
+            <div className='w-full'>
+              <p className={`text-xl font-bold ${result.status === 'UP' ? 'text-status-online' : 'text-status-offline'}`}>
+                Status: {result.status}
+              </p>
+              {result.status === 'UP' ? (
+                <p className="text-sm text-muted-foreground">
+                  Signal acquired in {result.responseTime}ms. Your mission is operational.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Signal lost. {result.message || "Could not connect to the server."}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
-                {result.errorMessage && (
-                  <div className="text-sm text-red-400">
-                    Error: {result.errorMessage}
-                  </div>
-                )}
-
-                {result.statusCode && (
-                  <div className="text-sm text-muted-foreground">
-                    Status Code: {result.statusCode}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {showConversion && result && (
-            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  <div className="text-lg font-semibold">
-                    🚀 Want to monitor this website 24/7?
-                  </div>
-                  <p className="text-muted-foreground">
-                    Create a free account to get continuous monitoring, instant alerts, 
-                    uptime tracking, and detailed analytics for your websites.
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Link to="/auth" onClick={() => onConvertToUser?.(url)}>
-                      <Button variant="rocket" size="lg">
-                        🚀 Start Free Monitoring
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="lg"
-                      onClick={() => setShowConversion(false)}
-                    >
-                      Maybe Later
+        {result && (
+            <Card className="mt-6 bg-background/50 border-border/50">
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <Rocket className="h-6 w-6 text-primary" />
+                        <div>
+                            <CardTitle>Ready for Mission Control?</CardTitle>
+                            <CardDescription>
+                                Turn this one-time ping into a 24/7 automated mission.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                        Get instant alerts via email when your site goes down, track uptime history, and monitor performance over time. It's free.
+                    </p>
+                    <Button asChild className="w-full" size="lg" onClick={handleSignUp}>
+                        <Link to="/login">
+                            <Rocket className="h-4 w-4 mr-2" />
+                            Deploy Continuous Monitoring
+                        </Link>
                     </Button>
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground">
-                    Free forever • No credit card required • 30-second setup
-                  </div>
-                </div>
-              </CardContent>
+                </CardContent>
             </Card>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
-};
+}
