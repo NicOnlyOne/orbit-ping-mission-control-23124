@@ -107,7 +107,7 @@ async function shouldSendEmailWithCooldown(m: MonitorRow): Promise<boolean> {
 // REAL EMAIL INTEGRATION WITH RESEND
 async function invokeSendEmail(args: {
   monitor: MonitorRow;
-  type: "DOWN"; // we only send DOWN alerts
+  type: "DOWN";
   probeResult: { ok: boolean; status?: number; error?: string | null };
 }) {
   if (DISABLE_ALERTS) return { ok: true, skipped: true };
@@ -119,76 +119,27 @@ async function invokeSendEmail(args: {
   }
 
   try {
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY not found in environment variables');
-      return { ok: false, error: 'Missing API key' };
-    }
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'onboarding@resend.dev',
-        to: [to],
-        subject: `🚨 Mission Alert: ${args.monitor.name || args.monitor.url} is DOWN`,
-        html: `
-          <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
-            <div style="background: #1a1a1a; color: white; padding: 24px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🛰️ ORBIT PING MISSION CONTROL</h1>
-              <p style="margin: 8px 0 0; opacity: 0.8;">Houston, we have a problem!</p>
-            </div>
-            
-            <div style="background: #dc2626; color: white; padding: 20px; text-align: center;">
-              <h2 style="margin: 0; font-size: 24px;">🚨 SERVICE DOWN ALERT</h2>
-            </div>
-            
-            <div style="padding: 24px;">
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-                <h3 style="margin: 0 0 16px 0; color: #1e293b;">Mission Details</h3>
-                <p style="margin: 0 0 8px 0;"><strong>Service Name:</strong> ${args.monitor.name || 'Unnamed Service'}</p>
-                <p style="margin: 0 0 8px 0;"><strong>URL:</strong> <a href="${args.monitor.url}" style="color: #dc2626;">${args.monitor.url}</a></p>
-                <p style="margin: 0 0 8px 0;"><strong>Status:</strong> <span style="color: #dc2626; font-weight: bold;">DOWN 🔴</span></p>
-                ${args.probeResult.status ? `<p style="margin: 0 0 8px 0;"><strong>HTTP Status:</strong> ${args.probeResult.status}</p>` : ''}
-                ${args.probeResult.error ? `<p style="margin: 0 0 8px 0;"><strong>Error:</strong> ${args.probeResult.error}</p>` : ''}
-                <p style="margin: 0;"><strong>Alert Time:</strong> ${new Date().toLocaleString()}</p>
-              </div>
-              
-              <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-                <p style="margin: 0; color: #991b1b;">
-                  ⚠️ <strong>Action Required:</strong> Please check your service immediately. Your website or service is currently unreachable.
-                </p>
-              </div>
-              
-              <div style="text-align: center; margin: 24px 0;">
-                <a href="${args.monitor.url}" style="background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">CHECK SERVICE NOW</a>
-              </div>
-            </div>
-            
-            <div style="background: #f1f5f9; padding: 16px; text-align: center; font-size: 14px; color: #64748b;">
-              <p style="margin: 0;">This alert was sent by <strong>Orbit Ping Mission Control</strong> 🚀</p>
-              <p style="margin: 4px 0 0 0;">Monitoring your digital universe, one ping at a time.</p>
-            </div>
-          </div>
-        `,
-      }),
+    console.log(`🚀 Calling send-alert-email function for monitor: ${args.monitor.name}`);
+    
+    const { data, error } = await supabase.functions.invoke('send-alert-email', {
+      body: {
+        monitor: args.monitor,
+        type: args.type,
+        probeResult: args.probeResult,
+        to: to
+      }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Resend API error:', errorText);
-      return { ok: false, error: errorText };
+    if (error) {
+      console.error('❌ send-alert-email function error:', error);
+      return { ok: false, error: error.message };
     }
 
-    const result = await response.json();
-    console.log('🚀 Email sent successfully:', { to, monitor: args.monitor.name });
-    return { ok: true, result };
+    console.log('✅ send-alert-email function success:', data);
+    return { ok: true, result: data };
 
-  } catch (error: any) {
-    console.error('❌ Error sending email:', error);
+  } catch (error) {
+    console.error('❌ Error calling send-alert-email function:', error);
     return { ok: false, error: error.message };
   }
 }
