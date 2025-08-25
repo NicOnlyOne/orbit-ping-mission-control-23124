@@ -1,112 +1,160 @@
-// PASTE THIS CORRECTED CODE INTO: supabase/functions/send-alert-email/index.ts
+// supabase/functions/send-alert-email/index.ts
+// Edge function: checks monitors, updates status, and emails via Resend when DOWN.
+// Uses a cooldown to avoid spam.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
-const COOLDOWN_MINUTES = 60;
 const TIMEOUT_MS = 15_000;
 
 type Monitor = {
   id: string;
-  name: string;
-  url: string;
+  name: string | null;
+  url: string | null;
   status: "UP" | "DOWN" | null;
   last_alert_sent: string | null;
   notify_email: string | null;
+  alert_cooldown_minutes: number | null;
+  enabled: boolean | null;
 };
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function minutesSince(iso: string | null): number {
+  if (!iso) return Number.POSITIVE_INFINITY;
+  const then = new Date(iso).getTime();
+  return (Date.now() - then) / 60000;
+}
+
 async function probeUrl(url: string) {
-  const startTime = Date.now();
+  const start = Date.now();
   try {
-    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(TIMEOUT_MS) });
-    const responseTime = Date.now() - startTime;
+    const res = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     return {
-      ok: response.ok,
-      status: response.status,
-      responseTime
+      ok: res.ok || (res.status >= 200 && res.status < 400),
+      status: res.status,
+      responseTime: Date.now() - start,
+      error: undefined as string | undefined,
     };
-  } catch (err) {
-    const responseTime = Date.now() - startTime;
-    const errorMessage = err instanceof Error ? err.message : String(err);
+  } catch (e) {
     return {
       ok: false,
       status: 0,
-      error: errorMessage,
-      responseTime
+      responseTime: Date.now() - start,
+      error: e instanceof Error ? e.message : String(e),
     };
   }
 }
 
-Deno.serve(async () => {
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
-  const { data: monitors, error: fetchError } = await supabase
-    .from("monitors")
-    .select<"*", Monitor>("id, name, url, status, last_alert_sent, notify_email");
-
-  if (fetchError) {
-    console.error("Error fetching monitors:", fetchError.message);
-    return new Response("Error fetching monitors", { status: 500 });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  const now = new Date();
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendKey = Deno.env.get("RESEND_API_KEY") || "";
 
-  const checkPromises = monitors.map(async (m) => {
-    // --- THIS IS THE CRITICAL CHANGE ---
-    const probeResult = await probeUrl(m.url);
-    const isUp = probeResult.ok;
-    const errorMessage = isUp ? null : (probeResult.error || `HTTP ${probeResult.status}`);
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-    if (isUp) {
-      if (m.status === "DOWN") {
-        console.log(`Monitor ${m.id} (${m.url}) is back UP.`);
-      }
-      await supabase.from("monitors").update({
-        status: "UP",
-        last_checked: now.toISOString(),
-        response_time: probeResult.responseTime,
-        error_message: null
-      }).eq("id", m.id);
-    } else {
-      console.log(`Monitor ${m.id} (${m.url}) is DOWN. Reason: ${errorMessage}`);
-      
-      const shouldSendAlert = !m.last_alert_sent || 
-        (now.getTime() - new Date(m.last_alert_sent).getTime()) > COOLDOWN_MINUTES * 60 * 1000;
+    // Load monitors
+    const { data: monitors, error } = await supabase
+      .from("monitors")
+      .select<"*, Monitor">(
+        "id, name, url, status, last_alert_sent, notify_email, alert_cooldown_minutes, enabled"
+      );
 
-      if (shouldSendAlert) {
-        console.log(`Cooldown passed for ${m.id}. Sending alert.`);
-        
-        const resendApiKey = Deno.env.get("RESEND_API_KEY");
-        if (m.notify_email && resendApiKey) {
+    if (error) {
+      console.error("Error fetching monitors:", error);
+      return new Response(JSON.stringify({ error: "fetch_monitors_failed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    const active = (monitors || []).filter((m) => (m.enabled ?? true) && !!m.url);
+    const results: Array<{ id: string; nextStatus: "UP" | "DOWN"; emailed: boolean }> = [];
+
+    for (const m of active) {
+      const url = m.url!;
+      const probe = await probeUrl(url);
+      const nextStatus: "UP" | "DOWN" = probe.ok ? "UP" : "DOWN";
+
+      const cooldownMin = m.alert_cooldown_minutes ?? 60;
+      const canEmail =
+        nextStatus === "DOWN" &&
+        !!m.notify_email &&
+        minutesSince(m.last_alert_sent) >= cooldownMin &&
+        !!resendKey;
+
+      // Optional: log each check
+      await supabase.from("monitor_checks").insert({
+        monitor_id: m.id,
+        status: nextStatus,
+        response_time: probe.responseTime,
+        error_message: probe.error ?? null,
+      });
+
+      let emailed = false;
+      if (canEmail) {
+        try {
           const res = await fetch("https://api.resend.com/emails", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${resendApiKey}` },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendKey}`,
+            },
             body: JSON.stringify({
               from: "Mission Control <alerts@lovable.app>",
               to: [m.notify_email],
-              subject: `🚨 Alert: Your mission "${m.name}" is DOWN`,
-              html: `<p>Commander,</p><p>Our sensors show that your mission <strong>${m.name}</strong> (${m.url}) is unresponsive.</p><p>Reason: ${errorMessage}</p><p>We will continue to monitor the situation.</p><p>- OrbitPing Mission Control</p>`,
+              subject:
+                nextStatus === "DOWN"
+                  ? `🚨 ${m.name ?? "Monitor"} is DOWN`
+                  : `✅ ${m.name ?? "Monitor"} is UP`,
+              html:
+                nextStatus === "DOWN"
+                  ? `<p>Commander,</p><p><strong>${m.name ?? url}</strong> is unresponsive.</p><p>URL: ${url}</p><p>Error: ${
+                      probe.error ?? `HTTP ${probe.status}`
+                    }</p><p>We will continue monitoring.</p><p>- OrbitPing Mission Control</p>`
+                  : `<p>Good news!</p><p><strong>${m.name ?? url}</strong> is back UP.</p><p>- OrbitPing Mission Control</p>`,
             }),
           });
-          const responseBody = await res.json();
-          console.log(`Resend API response for ${m.id}: ${res.status} ${JSON.stringify(responseBody)}`);
+          const body = await res.json().catch(() => ({}));
+          console.log("Resend response", res.status, body);
+          emailed = res.ok;
+        } catch (e) {
+          console.error("Resend send error", e);
         }
-        await supabase.from("monitors").update({ 
-          status: "DOWN", last_checked: now.toISOString(), error_message: errorMessage,
-          response_time: probeResult.responseTime, last_alert_sent: now.toISOString()
-        }).eq("id", m.id);
-      } else {
-        console.log(`Monitor ${m.id} is down, but within cooldown. Skipping alert.`);
-        await supabase.from("monitors").update({ 
-          status: "DOWN", last_checked: now.toISOString(), error_message: errorMessage,
-          response_time: probeResult.responseTime
-        }).eq("id", m.id);
       }
-    }
-  });
 
-  await Promise.all(checkPromises);
-  return new Response("ok", { headers: { "Content-Type": "application/json" } });
+      const update: Record<string, unknown> = {
+        status: nextStatus,
+        last_checked: new Date().toISOString(),
+        response_time: probe.responseTime,
+        error_message: probe.error ?? null,
+      };
+      if (emailed) update.last_alert_sent = new Date().toISOString();
+
+      await supabase.from("monitors").update(update).eq("id", m.id);
+      results.push({ id: m.id, nextStatus, emailed });
+    }
+
+    return new Response(JSON.stringify({ ok: true, checked: results.length, results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  } catch (e) {
+    console.error("Function error", e);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
+  }
 });
