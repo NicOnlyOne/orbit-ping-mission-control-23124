@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
               Authorization: `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
-              from: "Mission Control <alerts@lovable.app>",
+              from: "Mission Control <onboarding@resend.dev>",
               to: [m.notify_email],
               subject:
                 nextStatus === "DOWN"
