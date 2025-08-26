@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "./StatusIndicator";
 import { MonitoringIntervalSlider } from "./MonitoringIntervalSlider";
-import { EmailSettingsForm } from "./EmailSettingsForm";
+
 import { cn } from "@/lib/utils";
 import { ExternalLink, RefreshCw, Trash2, Settings } from "lucide-react";
 import { useState } from "react";
@@ -14,12 +14,10 @@ interface MissionCardProps {
   uptime: string;
   responseTime: string;
   monitoringInterval?: number;
-  notifyEmail?: string | null;
   className?: string;
   onTest?: () => void;
   onDelete?: () => void;
   onIntervalChange?: (interval: number) => void;
-  onEmailUpdate?: (email: string) => Promise<void>;
   lastChecked?: string | null;
 }
 
@@ -30,12 +28,10 @@ export const MissionCard = ({
   uptime, 
   responseTime, 
   monitoringInterval = 300,
-  notifyEmail,
   className,
   onTest,
   onDelete,
   onIntervalChange,
-  onEmailUpdate,
   lastChecked
 }: MissionCardProps) => {
   const [showSettings, setShowSettings] = useState(false);
@@ -185,14 +181,6 @@ export const MissionCard = ({
               <MonitoringIntervalSlider
                 value={monitoringInterval}
                 onChange={onIntervalChange}
-              />
-            )}
-            
-            {onEmailUpdate && (
-              <EmailSettingsForm
-                currentEmail={notifyEmail}
-                onSave={onEmailUpdate}
-                onCancel={() => setShowSettings(false)}
               />
             )}
           </div>

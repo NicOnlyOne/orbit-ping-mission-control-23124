@@ -13,7 +13,6 @@ interface Monitor {
   uptime_percentage: number;
   error_message: string | null;
   monitoring_interval: number;
-  notify_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -50,8 +49,7 @@ export function useMonitors() {
 
       setMonitors(data.map(monitor => ({
         ...monitor,
-        status: monitor.status as 'online' | 'offline' | 'checking' | 'warning',
-        notify_email: monitor.notify_email || null
+        status: monitor.status as 'online' | 'offline' | 'checking' | 'warning'
       })));
     } catch (error) {
       console.error('Unexpected error fetching monitors:', error);
@@ -265,26 +263,6 @@ export function useMonitors() {
     }
   };
 
-  const updateMonitorEmail = async (monitorId: string, email: string) => {
-    try {
-      const { error } = await supabase
-        .from("monitors")
-        .update({ notify_email: email } as any)
-        .eq("id", monitorId);
-
-      if (error) {
-        console.error("Error updating monitor email:", error);
-        toast.error("Failed to update alert email");
-        return;
-      }
-
-      toast.success(`📧 Alert email updated successfully`);
-      fetchMonitors();
-    } catch (error) {
-      console.error("Unexpected error updating email:", error);
-      toast.error("Mission control error updating email");
-    }
-  };
 
   return {
     monitors,
@@ -293,7 +271,6 @@ export function useMonitors() {
     createMonitor,
     testMonitor,
     deleteMonitor,
-    updateMonitorInterval,
-    updateMonitorEmail
+    updateMonitorInterval
   };
 }
