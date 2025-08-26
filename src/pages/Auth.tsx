@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Navigation } from '@/components/Navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Rocket, Satellite } from 'lucide-react';
@@ -85,8 +86,11 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-medium to-space-light flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
+    <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-medium to-space-light">
+      <Navigation />
+      
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
       
       {/* Animated stars background */}
       <div className="absolute inset-0 overflow-hidden">
@@ -217,6 +221,7 @@ export default function Auth() {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

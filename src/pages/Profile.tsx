@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { PasswordStrengthChecker } from "@/components/PasswordStrengthChecker";
+import { Navigation } from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff } from "lucide-react";
@@ -213,21 +214,24 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
-      {/* Navigation Header */}
-      <header className="bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link to="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">User Profile</h1>
+      <Navigation />
+      
+      <div className="pt-20"> {/* Add padding for fixed navigation */}
+        {/* Page Header */}
+        <div className="bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
+          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
+            <Link to="/">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">User Profile</h1>
+            </div>
           </div>
         </div>
-      </header>
 
       <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
         {/* Profile Information */}
@@ -396,6 +400,7 @@ const Profile = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

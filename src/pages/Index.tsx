@@ -5,20 +5,20 @@ import { Label } from "@/components/ui/label";
 import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
+import { Navigation } from "@/components/Navigation";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
 import { useAuth, usePushNotification } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { Link } from "react-router-dom";
-import { LogOut, User, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const {
     user,
-    loading,
-    signOut
+    loading
   } = useAuth();
   
   // Initialize push notifications for logged-in users
@@ -71,41 +71,12 @@ const Index = () => {
       </div>;
   }
   return <div className="min-h-screen">
-      {/* Navigation Header */}
-      <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🚀</span>
-            <span className="text-xl font-bold text-foreground">OrbitPing</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {user ? <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user.email}</span>
-                </div>
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-muted-foreground hover:text-foreground">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </div> : <Link to="/auth">
-                <Button variant="outline" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Sign In
-                </Button>
-              </Link>}
-          </div>
-        </div>
-      </header>
+      <Navigation />
 
       {/* Space particles background */}
       <div className="space-particles" />
+      
+      <div className="pt-20"> {/* Add padding for fixed navigation */}
       
       {/* Hero Section */}
       {user ? <section></section> : <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -330,6 +301,7 @@ const Index = () => {
             </div>
           </section>
         )}     
+      </div>
     </div>;
 };
 export default Index;
