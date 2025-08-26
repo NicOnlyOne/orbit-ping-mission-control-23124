@@ -110,6 +110,7 @@ export type Database = {
         Row: {
           alert_cooldown_minutes: number
           created_at: string
+          enabled: boolean
           error_message: string | null
           id: string
           last_alert_sent: string | null
@@ -117,6 +118,7 @@ export type Database = {
           last_checked: string | null
           monitoring_interval: number | null
           name: string
+          notify_email: string | null
           response_time: number | null
           status: string
           updated_at: string
@@ -127,6 +129,7 @@ export type Database = {
         Insert: {
           alert_cooldown_minutes?: number
           created_at?: string
+          enabled?: boolean
           error_message?: string | null
           id?: string
           last_alert_sent?: string | null
@@ -134,6 +137,7 @@ export type Database = {
           last_checked?: string | null
           monitoring_interval?: number | null
           name: string
+          notify_email?: string | null
           response_time?: number | null
           status?: string
           updated_at?: string
@@ -144,6 +148,7 @@ export type Database = {
         Update: {
           alert_cooldown_minutes?: number
           created_at?: string
+          enabled?: boolean
           error_message?: string | null
           id?: string
           last_alert_sent?: string | null
@@ -151,6 +156,7 @@ export type Database = {
           last_checked?: string | null
           monitoring_interval?: number | null
           name?: string
+          notify_email?: string | null
           response_time?: number | null
           status?: string
           updated_at?: string

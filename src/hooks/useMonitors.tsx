@@ -13,7 +13,7 @@ interface Monitor {
   uptime_percentage: number;
   error_message: string | null;
   monitoring_interval: number;
-  notify_email?: string | null;
+  notify_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +34,7 @@ export function useMonitors() {
     try {
       const { data, error } = await supabase
         .from('monitors')
-        .select('*, notify_email')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
