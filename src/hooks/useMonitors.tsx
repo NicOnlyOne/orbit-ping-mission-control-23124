@@ -43,10 +43,16 @@ export function useMonitors() {
         return;
       }
 
-      setMonitors(data?.map(monitor => ({
+      if (!data) {
+        setMonitors([]);
+        return;
+      }
+
+      setMonitors(data.map(monitor => ({
         ...monitor,
-        status: monitor.status as 'online' | 'offline' | 'checking' | 'warning'
-      })) || []);
+        status: monitor.status as 'online' | 'offline' | 'checking' | 'warning',
+        notify_email: monitor.notify_email || null
+      })));
     } catch (error) {
       console.error('Unexpected error fetching monitors:', error);
       toast.error('Houston, we have a problem loading your missions');
@@ -263,7 +269,7 @@ export function useMonitors() {
     try {
       const { error } = await supabase
         .from("monitors")
-        .update({ notify_email: email })
+        .update({ notify_email: email } as any)
         .eq("id", monitorId);
 
       if (error) {
