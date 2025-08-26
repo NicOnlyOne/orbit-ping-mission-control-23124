@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     // Update monitor status if it's a real monitor (not anonymous)
     if (monitor.id !== 'anonymous') {
-      await updateMonitorStatus(supabase, monitor.id, nextStatus);
+      await updateMonitorStatus(supabase, monitor.id, nextStatus, probeResult.responseTime);
       console.log(`--- FINAL: Database updated. Status: ${nextStatus}, Response Time: ${probeResult.responseTime || 0}ms ---`);
 
       // Get user email from profiles table
@@ -146,12 +146,13 @@ async function probeUrl(url: string): Promise<{
   }
 }
 
-async function updateMonitorStatus(supabase: any, id: string, status: "UP" | "DOWN") {
+async function updateMonitorStatus(supabase: any, id: string, status: "UP" | "DOWN", responseTime?: number) {
   const { error } = await supabase
     .from('monitors')
     .update({ 
       status: status, 
-      last_checked: new Date().toISOString() 
+      last_checked: new Date().toISOString(),
+      response_time: responseTime || null
     })
     .eq('id', id);
     
