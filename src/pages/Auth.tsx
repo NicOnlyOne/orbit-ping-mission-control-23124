@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigation } from '@/components/Navigation';
+import { PasswordStrengthChecker } from '@/components/PasswordStrengthChecker';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Rocket, Satellite } from 'lucide-react';
+import { Rocket, Satellite, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +23,13 @@ export default function Auth() {
     password: ''
   });
   
+  const [showPasswords, setShowPasswords] = useState({
+    signIn: false,
+    signUp: false
+  });
+  
+  const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  
   const { signUp, signIn, user } = useAuth();
   const navigate = useNavigate();
 
@@ -34,6 +42,12 @@ export default function Auth() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isPasswordStrong) {
+      toast.error('Mission control requires a stronger access code. Please follow the security guidelines.');
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -46,8 +60,6 @@ export default function Auth() {
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('Commander, this email is already in our system! Try signing in instead.');
-        } else if (error.message.includes('Password should be at least')) {
-          toast.error('Mission control requires a stronger password. At least 6 characters.');
         } else {
           toast.error(`Houston, we have a problem: ${error.message}`);
         }
@@ -151,14 +163,25 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Access Code</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={signInData.password}
-                    onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
-                    required
-                    className="bg-space-dark border-space-light"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signin-password"
+                      type={showPasswords.signIn ? "text" : "password"}
+                      value={signInData.password}
+                      onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                      required
+                      className="bg-space-dark border-space-light pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="absolute right-0 top-0 h-full px-3 py-2"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, signIn: !prev.signIn }))}
+                    >
+                      {showPasswords.signIn ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
                 <Button 
                   type="submit" 
@@ -198,21 +221,40 @@ export default function Auth() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Access Code</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    value={signUpData.password}
-                    onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
-                    required
-                    className="bg-space-dark border-space-light"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showPasswords.signUp ? "text" : "password"}
+                      placeholder="Minimum 8 characters"
+                      value={signUpData.password}
+                      onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                      required
+                      className="bg-space-dark border-space-light pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      className="absolute right-0 top-0 h-full px-3 py-2"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, signUp: !prev.signUp }))}
+                    >
+                      {showPasswords.signUp ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
+                
+                {signUpData.password && (
+                  <PasswordStrengthChecker 
+                    password={signUpData.password} 
+                    onStrengthChange={setIsPasswordStrong}
+                  />
+                )}
+                
                 <Button 
                   type="submit" 
                   className="w-full" 
                   variant="mission" 
-                  disabled={isLoading}
+                  disabled={isLoading || !signUpData.password || !isPasswordStrong}
                 >
                   {isLoading ? 'Preparing Launch Sequence...' : 'Join the Mission'}
                 </Button>
