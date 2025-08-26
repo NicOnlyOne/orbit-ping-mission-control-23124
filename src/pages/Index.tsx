@@ -84,6 +84,12 @@ const Index = () => {
                   <User className="h-4 w-4" />
                   <span className="hidden sm:inline">{user.email}</span>
                 </div>
+                <Link to="/profile">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="sm" onClick={() => signOut()} className="text-muted-foreground hover:text-foreground">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
