@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusIndicator } from "./StatusIndicator";
 import { MonitoringIntervalSlider } from "./MonitoringIntervalSlider";
 
 import { cn } from "@/lib/utils";
-import { ExternalLink, RefreshCw, Trash2, Settings } from "lucide-react";
+import { ExternalLink, RefreshCw, Trash2, Settings, Play, Pause } from "lucide-react";
 import { useState } from "react";
 
 interface MissionCardProps {
@@ -14,9 +15,11 @@ interface MissionCardProps {
   uptime: string;
   responseTime: string;
   monitoringInterval?: number;
+  enabled?: boolean;
   className?: string;
   onTest?: () => void;
   onDelete?: () => void;
+  onToggleEnabled?: () => void;
   onIntervalChange?: (interval: number) => void;
   lastChecked?: string | null;
 }
@@ -28,9 +31,11 @@ export const MissionCard = ({
   uptime, 
   responseTime, 
   monitoringInterval = 300,
+  enabled = true,
   className,
   onTest,
   onDelete,
+  onToggleEnabled,
   onIntervalChange,
   lastChecked
 }: MissionCardProps) => {
@@ -69,27 +74,56 @@ export const MissionCard = ({
   };
 
   return (
-    <Card className={cn(
-      "bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 group",
-      "hover:shadow-[0_0_20px_hsl(220_15%_20%/0.5)]",
-      className
-    )}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-            🚀 {name}
-          </CardTitle>
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
+    <TooltipProvider>
+      <Card className={cn(
+        "bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 group",
+        "hover:shadow-[0_0_20px_hsl(220_15%_20%/0.5)]",
+        !enabled && "opacity-60",
+        className
+      )}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              🚀 {name}
+              {!enabled && <span className="text-xs bg-muted px-2 py-1 rounded">PAUSED</span>}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              {onToggleEnabled && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onToggleEnabled}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {enabled ? "Pause monitoring" : "Resume monitoring"}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {onDelete && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onDelete}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Delete mission
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </div>
         <div className="flex items-center gap-2">
           <a 
             href={url} 
@@ -187,5 +221,6 @@ export const MissionCard = ({
         )}
       </CardContent>
     </Card>
+    </TooltipProvider>
   );
 };

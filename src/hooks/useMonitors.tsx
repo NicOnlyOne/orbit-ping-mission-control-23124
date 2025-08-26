@@ -13,6 +13,7 @@ interface Monitor {
   uptime_percentage: number;
   error_message: string | null;
   monitoring_interval: number;
+  enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -228,9 +229,12 @@ export function useMonitors() {
     const timers: NodeJS.Timeout[] = [];
 
     monitors.forEach((m) => {
+      // Only set up timers for enabled monitors
+      if (!m.enabled) return;
+      
       const intervalSec = Math.min(3600, Math.max(30, m.monitoring_interval || 300));
       const id = setInterval(() => {
-        if (m.status !== 'checking') {
+        if (m.status !== 'checking' && m.enabled) {
           testMonitor(m.id);
         }
       }, intervalSec * 1000);
@@ -240,7 +244,7 @@ export function useMonitors() {
     return () => {
       timers.forEach(clearInterval);
     };
-  }, [user, monitors.map(m => `${m.id}:${m.monitoring_interval}:${m.status}`).join('|')]);
+  }, [user, monitors.map(m => `${m.id}:${m.monitoring_interval}:${m.status}:${m.enabled}`).join('|')]);
 
   // Update monitor interval
   const updateMonitorInterval = async (monitorId: string, intervalSeconds: number) => {
@@ -263,6 +267,31 @@ export function useMonitors() {
     }
   };
 
+  // Toggle monitor enabled state
+  const toggleMonitorEnabled = async (monitorId: string) => {
+    try {
+      const monitor = monitors.find(m => m.id === monitorId);
+      if (!monitor) return;
+
+      const { error } = await supabase
+        .from('monitors')
+        .update({ enabled: !monitor.enabled })
+        .eq('id', monitorId);
+
+      if (error) {
+        console.error('Error toggling monitor enabled state:', error);
+        toast.error('Failed to update mission status');
+        return;
+      }
+
+      toast.success(`🛰️ Mission ${!monitor.enabled ? 'activated' : 'paused'} successfully`);
+      fetchMonitors();
+    } catch (error) {
+      console.error('Unexpected error toggling monitor:', error);
+      toast.error('Mission control error updating status');
+    }
+  };
+
 
   return {
     monitors,
@@ -271,6 +300,7 @@ export function useMonitors() {
     createMonitor,
     testMonitor,
     deleteMonitor,
-    updateMonitorInterval
+    updateMonitorInterval,
+    toggleMonitorEnabled
   };
 }

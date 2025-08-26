@@ -29,7 +29,8 @@ const Index = () => {
     createMonitor,
     testMonitor,
     deleteMonitor,
-    updateMonitorInterval
+    updateMonitorInterval,
+    toggleMonitorEnabled
   } = useMonitors();
 
   // Handle pending mission from anonymous testing
@@ -221,7 +222,7 @@ const Index = () => {
                       </CardContent>
                     </Card>)}
                 </div> : monitors.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {monitors.map(monitor => <MissionCard key={monitor.id} name={monitor.name} url={monitor.url} status={monitor.status} uptime={`${monitor.uptime_percentage}%`} responseTime={monitor.response_time ? `${monitor.response_time}ms` : 'N/A'} monitoringInterval={monitor.monitoring_interval} onTest={() => testMonitor(monitor.id)} onDelete={() => deleteMonitor(monitor.id)} onIntervalChange={interval => updateMonitorInterval(monitor.id, interval)} lastChecked={monitor.last_checked} />)}
+                  {monitors.map(monitor => <MissionCard key={monitor.id} name={monitor.name} url={monitor.url} status={monitor.status} uptime={`${monitor.uptime_percentage}%`} responseTime={monitor.response_time ? `${monitor.response_time}ms` : 'N/A'} monitoringInterval={monitor.monitoring_interval} enabled={monitor.enabled} onTest={() => testMonitor(monitor.id)} onDelete={() => deleteMonitor(monitor.id)} onToggleEnabled={() => toggleMonitorEnabled(monitor.id)} onIntervalChange={interval => updateMonitorInterval(monitor.id, interval)} lastChecked={monitor.last_checked} />)}
                 </div> : <Card className="bg-space-medium border-space-light">
                   <CardContent className="p-12 text-center">
                     <div className="text-6xl mb-4">🛰️</div>
