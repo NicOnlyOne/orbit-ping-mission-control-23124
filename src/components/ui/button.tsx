@@ -23,7 +23,6 @@ const buttonVariants = cva(
         mission: "bg-gradient-to-r from-secondary to-blue-600 text-secondary-foreground hover:shadow-[0_0_20px_hsl(210_100%_50%/0.5)] hover:scale-105",
         satellite: "bg-gradient-to-r from-accent to-green-500 text-accent-foreground hover:shadow-[0_0_20px_hsl(142_100%_45%/0.5)] hover:scale-105",
         command: "bg-space-medium border border-space-light text-foreground hover:bg-space-light hover:shadow-[0_0_15px_hsl(220_15%_20%/0.8)]",
-        alert: "bg-destructive text-destructive-foreground hover:bg-destructive/90 animate-pulse-glow",
       },
       size: {
         default: "h-10 px-4 py-2",

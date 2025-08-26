@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusIndicator } from "./StatusIndicator";
 import { MonitoringIntervalSlider } from "./MonitoringIntervalSlider";
 
@@ -74,13 +74,12 @@ export const MissionCard = ({
   };
 
   return (
-    <TooltipProvider>
-      <Card className={cn(
-        "bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 group",
-        "hover:shadow-[0_0_20px_hsl(220_15%_20%/0.5)]",
-        !enabled && "opacity-60",
-        className
-      )}>
+    <Card className={cn(
+      "bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 group",
+      "hover:shadow-[0_0_20px_hsl(220_15%_20%/0.5)]",
+      !enabled && "opacity-60",
+      className
+    )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -221,6 +220,5 @@ export const MissionCard = ({
         )}
       </CardContent>
     </Card>
-    </TooltipProvider>
   );
 };

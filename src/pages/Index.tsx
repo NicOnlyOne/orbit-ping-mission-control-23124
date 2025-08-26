@@ -8,7 +8,7 @@ import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
 import { Navigation } from "@/components/Navigation";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
-import { useAuth, usePushNotification } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { Link } from "react-router-dom";
 import { Plus, RefreshCw } from "lucide-react";
@@ -21,8 +21,6 @@ const Index = () => {
     loading
   } = useAuth();
   
-  // Initialize push notifications for logged-in users
-  //usePushNotification();
   const {
     monitors,
     loading: monitorsLoading,

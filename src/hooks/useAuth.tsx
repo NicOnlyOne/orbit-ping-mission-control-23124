@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { requestPermission } from '../firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -90,31 +89,3 @@ export function useAuth() {
   }
   return context;
 }
-
-export const usePushNotification = () => {
-  useEffect(() => {
-    const setupPush = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          console.log('Setting up push notifications for user:', user.id);
-          const token = await requestPermission();
-          if (token) {
-            console.log('FCM token received:', token);
-            await supabase.from('devices').upsert({
-              user_id: user.id,
-              token,
-            }, { onConflict: 'user_id' });
-            console.log('Token saved to database');
-          } else {
-            console.log('Permission denied or token not available');
-          }
-        }
-      } catch (error) {
-        console.error('Error setting up push notifications:', error);
-      }
-    };
-
-    setupPush();
-  }, []);
-};
