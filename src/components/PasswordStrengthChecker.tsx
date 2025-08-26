@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
@@ -44,11 +44,14 @@ export const PasswordStrengthChecker = ({ password, onStrengthChange }: Password
       },
     ];
     
-    const strongPassword = reqs.filter(req => req.met).length >= 5;
-    onStrengthChange?.(strongPassword && password.length >= 8);
-    
     return reqs;
-  }, [password, onStrengthChange]);
+  }, [password]);
+
+  // Use separate useEffect to avoid calling state setters during render
+  useEffect(() => {
+    const strongPassword = requirements.filter(req => req.met).length >= 5;
+    onStrengthChange?.(strongPassword && password.length >= 8);
+  }, [requirements, password.length, onStrengthChange]);
 
   const strength = requirements.filter(req => req.met).length;
   const strengthPercentage = (strength / requirements.length) * 100;
