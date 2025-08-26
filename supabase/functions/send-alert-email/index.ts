@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
       }
 
       const update: Record<string, unknown> = {
-        status: nextStatus === "UP" ? "online" : "offline",
+        status: nextStatus,
         last_checked: new Date().toISOString(),
         response_time: p.responseTime,
         error_message: p.error ?? null,

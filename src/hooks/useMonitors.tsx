@@ -49,7 +49,7 @@ export function useMonitors() {
 
       setMonitors(data.map(monitor => ({
         ...monitor,
-        status: monitor.status as 'online' | 'offline' | 'checking' | 'warning'
+        status: monitor.status === 'UP' ? 'online' : monitor.status === 'DOWN' ? 'offline' : monitor.status as 'online' | 'offline' | 'checking' | 'warning'
       })));
     } catch (error) {
       console.error('Unexpected error fetching monitors:', error);

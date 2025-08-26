@@ -150,7 +150,7 @@ async function updateMonitorStatus(supabase: any, id: string, status: "UP" | "DO
   const { error } = await supabase
     .from('monitors')
     .update({ 
-      status: status === "UP" ? "online" : "offline", 
+      status: status, 
       last_checked: new Date().toISOString() 
     })
     .eq('id', id);
@@ -178,7 +178,7 @@ function shouldSendAlert(
   lastAlertSent: string | null
 ): boolean {
   // Always send recovery emails when coming back online
-  if (currentStatus === "UP" && previousStatus === "offline") {
+  if (currentStatus === "UP" && previousStatus === "DOWN") {
     return true;
   }
   
