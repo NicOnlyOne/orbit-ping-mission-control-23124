@@ -37,52 +37,70 @@ async function getAccessToken(): Promise<string> {
     scope: "https://www.googleapis.com/auth/firebase.messaging"
   };
 
-  // Clean the private key - ensure proper format
-  let cleanKey = privateKey.trim();
-  
-  // Handle different possible formats
-  if (!cleanKey.includes('-----BEGIN PRIVATE KEY-----')) {
-    // If missing headers, assume it's just the base64 content
-    cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+  // Sanitize and import private key as CryptoKey (PKCS8)
+  let key = privateKey.trim();
+
+  // Strip wrapping quotes if present
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith('\'') && key.endsWith('\''))) {
+    key = key.slice(1, -1);
   }
-  
-  // Normalize line endings
-  cleanKey = cleanKey.replace(/\\n/g, '\n');
 
-  console.log('Key starts with:', cleanKey.substring(0, 50));
-  console.log('Key ends with:', cleanKey.substring(cleanKey.length - 50));
+  // Normalize escaped newlines and remove CR
+  key = key.replace(/\\n/g, '\n').replace(/\r/g, '');
 
-  try {
-    // Use djwt's built-in key import
-    const jwt = await create({ alg: "RS256", typ: "JWT" }, payload, cleanKey);
-
-    console.log('JWT created successfully, exchanging for access token...');
-
-    // Exchange JWT for access token
-    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: jwt,
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      const error = await tokenResponse.text();
-      console.error('Token exchange failed:', error);
-      throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+  // Helper to convert PEM/Base64 to ArrayBuffer (PKCS8 DER)
+  function pemToArrayBuffer(pemOrBase64: string): ArrayBuffer {
+    let base64 = pemOrBase64;
+    const begin = '-----BEGIN PRIVATE KEY-----';
+    const end = '-----END PRIVATE KEY-----';
+    if (base64.includes(begin)) {
+      const start = base64.indexOf(begin) + begin.length;
+      const stop = base64.indexOf(end);
+      base64 = base64.slice(start, stop);
     }
-
-    const tokenData = await tokenResponse.json();
-    console.log('Access token obtained successfully');
-    return tokenData.access_token;
-  } catch (error) {
-    console.error('Error in getAccessToken:', error);
-    throw error;
+    base64 = base64.replace(/[^A-Za-z0-9+/=_-]/g, '');
+    base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    if (pad) base64 += '='.repeat(4 - pad);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes.buffer;
   }
+
+  const pkcs8Der = pemToArrayBuffer(key);
+  console.log('PKCS8 DER byteLength:', (pkcs8Der as ArrayBuffer).byteLength);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    pkcs8Der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  // Sign JWT with RS256 using CryptoKey
+  const jwt = await create({ alg: 'RS256', typ: 'JWT' }, payload, cryptoKey);
+
+  // Exchange JWT for access token
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    const error = await tokenResponse.text();
+    console.error('Token exchange failed:', error);
+    throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+  }
+
+  const tokenData = await tokenResponse.json();
+  console.log('Access token obtained successfully');
+  return tokenData.access_token;
 }
 
 serve(async (req) => {
