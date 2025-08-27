@@ -171,9 +171,11 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          fcm_token: string | null
           full_name: string | null
           id: string
           notification_email: boolean | null
+          notification_preferences: Json | null
           updated_at: string
           user_id: string
         }
@@ -181,9 +183,11 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           notification_email?: boolean | null
+          notification_preferences?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -191,9 +195,11 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           notification_email?: boolean | null
+          notification_preferences?: Json | null
           updated_at?: string
           user_id?: string
         }
