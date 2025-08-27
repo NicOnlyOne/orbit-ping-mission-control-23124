@@ -85,10 +85,12 @@ Deno.serve(async (req) => {
         if (nextStatus === "DOWN") {
           console.log(`--- FINAL: Sending DOWN alert to ${userEmail} ---`);
           await sendAlert(userEmail, monitor, "DOWN", probeResult);
+          await sendPushNotification(supabase, monitor.user_id, "DOWN", monitor, probeResult);
           await markLastAlertSent(supabase, monitor.id);
         } else if (nextStatus === "UP" && previousStatus === "DOWN") {
           console.log(`--- FINAL: Sending RECOVERY alert to ${userEmail} ---`);
           await sendAlert(userEmail, monitor, "RECOVERY", probeResult);
+          await sendPushNotification(supabase, monitor.user_id, "RECOVERY", monitor, probeResult);
         }
       }
     }
@@ -258,5 +260,60 @@ async function sendAlert(
     }
   } catch (error) {
     console.error("Email sending error:", error);
+  }
+}
+
+async function sendPushNotification(
+  supabase: any,
+  userId: string,
+  type: "DOWN" | "RECOVERY",
+  monitor: MonitorRow,
+  probeResult: any
+): Promise<void> {
+  try {
+    // Get user's FCM token from profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('fcm_token')
+      .eq('user_id', userId)
+      .single();
+
+    if (!profile?.fcm_token) {
+      console.log(`No FCM token found for user ${userId}, skipping push notification`);
+      return;
+    }
+
+    const isDown = type === "DOWN";
+    const title = isDown 
+      ? `🚨 ${monitor.name} is Down`
+      : `✅ ${monitor.name} Recovered`;
+    
+    const body = isDown
+      ? `Your monitored service is offline. Response time: ${probeResult.responseTime || 0}ms`
+      : `Your service is back online! Response time: ${probeResult.responseTime || 0}ms`;
+
+    // Call the send-push-notification function
+    const { error } = await supabase.functions.invoke('send-push-notification', {
+      body: {
+        token: profile.fcm_token,
+        title,
+        body,
+        userId,
+        data: {
+          monitorId: monitor.id,
+          monitorName: monitor.name,
+          status: type === "DOWN" ? "DOWN" : "UP",
+          url: monitor.url
+        }
+      }
+    });
+
+    if (error) {
+      console.error(`Push notification error for user ${userId}:`, error);
+    } else {
+      console.log(`Push notification sent successfully to user ${userId}`);
+    }
+  } catch (error) {
+    console.error(`Error sending push notification for user ${userId}:`, error);
   }
 }
