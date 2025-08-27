@@ -26,6 +26,29 @@ export const usePushNotifications = () => {
     checkSupport();
   }, []);
 
+  // Store FCM token in Supabase when user is available
+  const saveFCMToken = useCallback(async (fcmToken: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          fcm_token: fcmToken,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Error saving FCM token:', error);
+      } else {
+        console.log('FCM token saved successfully');
+      }
+    } catch (error) {
+      console.error('Error saving FCM token:', error);
+    }
+  }, [user]);
+
   // Register service worker
   useEffect(() => {
     if (isSupported) {
@@ -37,9 +60,30 @@ export const usePushNotifications = () => {
           console.error('Service Worker registration failed:', error);
         });
     }
-  }, [isSupported]);
+}, [isSupported]);
 
-  // Listen for foreground messages
+// If permission already granted, fetch existing FCM token
+useEffect(() => {
+  const fetchExistingToken = async () => {
+    if (!isSupported) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+      if (!messaging) return;
+      const reg = await navigator.serviceWorker.ready;
+      const currentToken = await getFCMToken(messaging as any, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg as any });
+      if (currentToken) {
+        setToken(currentToken);
+        setIsEnabled(true);
+        await saveFCMToken(currentToken);
+      }
+    } catch (e) {
+      console.warn('Unable to fetch existing FCM token:', e);
+    }
+  };
+  fetchExistingToken();
+}, [isSupported, saveFCMToken]);
+
+// Listen for foreground messages
   useEffect(() => {
     let mounted = true;
     
@@ -69,28 +113,6 @@ export const usePushNotifications = () => {
     };
   }, [toast, isSupported]);
 
-  // Store FCM token in Supabase when user is available
-  const saveFCMToken = useCallback(async (fcmToken: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          fcm_token: fcmToken,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Error saving FCM token:', error);
-      } else {
-        console.log('FCM token saved successfully');
-      }
-    } catch (error) {
-      console.error('Error saving FCM token:', error);
-    }
-  }, [user]);
 
   // Request permission and get token
   const enableNotifications = useCallback(async () => {
