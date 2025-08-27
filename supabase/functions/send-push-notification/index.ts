@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
+import { create } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,9 +24,7 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Missing Firebase service account credentials');
   }
 
-  console.log('Raw private key length:', privateKey.length);
-  console.log('Private key starts with:', privateKey.substring(0, 50));
-  console.log('Private key includes begin marker:', privateKey.includes('-----BEGIN PRIVATE KEY-----'));
+  console.log('Attempting to create JWT with client email:', clientEmail);
 
   // Create JWT payload
   const now = Math.floor(Date.now() / 1000);
@@ -39,66 +37,52 @@ async function getAccessToken(): Promise<string> {
     scope: "https://www.googleapis.com/auth/firebase.messaging"
   };
 
-  // Import private key - handle both escaped and actual newlines
-  const keyData = privateKey.replace(/\\n/g, '\n');
-  console.log('After newline replacement:', keyData.substring(0, 50));
+  // Clean the private key - ensure proper format
+  let cleanKey = privateKey.trim();
   
-  // Remove header, footer, and whitespace from PEM, then normalize/pad base64
-  let pemContents = keyData
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace(/\r/g, '')
-    .replace(/\n/g, '')
-    .replace(/\s/g, '');
-
-  console.log('PEM contents length:', pemContents.length);
-  console.log('PEM contents first 50 chars:', pemContents.substring(0, 50));
-
-  // Normalize potential URL-safe base64 and add missing padding
-  pemContents = pemContents.replace(/-/g, '+').replace(/_/g, '/');
-  const padLen = pemContents.length % 4;
-  if (padLen) pemContents += '='.repeat(4 - padLen);
-  
-  console.log('Final PEM contents length:', pemContents.length);
-  console.log('About to call atob with:', pemContents.substring(0, 20));
-  
-  // Convert base64 to ArrayBuffer
-  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey.buffer,
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      hash: "SHA-256",
-    },
-    false,
-    ["sign"]
-  );
-
-  // Create and sign JWT
-  const jwt = await create({ alg: "RS256", typ: "JWT" }, payload, cryptoKey);
-
-  // Exchange JWT for access token
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-
-  if (!tokenResponse.ok) {
-    const error = await tokenResponse.text();
-    console.error('Token exchange failed:', error);
-    throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+  // Handle different possible formats
+  if (!cleanKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    // If missing headers, assume it's just the base64 content
+    cleanKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
   }
+  
+  // Normalize line endings
+  cleanKey = cleanKey.replace(/\\n/g, '\n');
 
-  const tokenData = await tokenResponse.json();
-  return tokenData.access_token;
+  console.log('Key starts with:', cleanKey.substring(0, 50));
+  console.log('Key ends with:', cleanKey.substring(cleanKey.length - 50));
+
+  try {
+    // Use djwt's built-in key import
+    const jwt = await create({ alg: "RS256", typ: "JWT" }, payload, cleanKey);
+
+    console.log('JWT created successfully, exchanging for access token...');
+
+    // Exchange JWT for access token
+    const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const error = await tokenResponse.text();
+      console.error('Token exchange failed:', error);
+      throw new Error(`Failed to get access token: ${tokenResponse.status}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+    console.log('Access token obtained successfully');
+    return tokenData.access_token;
+  } catch (error) {
+    console.error('Error in getAccessToken:', error);
+    throw error;
+  }
 }
 
 serve(async (req) => {
