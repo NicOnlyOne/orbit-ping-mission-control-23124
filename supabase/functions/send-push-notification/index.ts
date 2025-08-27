@@ -24,6 +24,10 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Missing Firebase service account credentials');
   }
 
+  console.log('Raw private key length:', privateKey.length);
+  console.log('Private key starts with:', privateKey.substring(0, 50));
+  console.log('Private key includes begin marker:', privateKey.includes('-----BEGIN PRIVATE KEY-----'));
+
   // Create JWT payload
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -37,6 +41,7 @@ async function getAccessToken(): Promise<string> {
 
   // Import private key - handle both escaped and actual newlines
   const keyData = privateKey.replace(/\\n/g, '\n');
+  console.log('After newline replacement:', keyData.substring(0, 50));
   
   // Remove header, footer, and whitespace from PEM, then normalize/pad base64
   let pemContents = keyData
@@ -46,10 +51,16 @@ async function getAccessToken(): Promise<string> {
     .replace(/\n/g, '')
     .replace(/\s/g, '');
 
+  console.log('PEM contents length:', pemContents.length);
+  console.log('PEM contents first 50 chars:', pemContents.substring(0, 50));
+
   // Normalize potential URL-safe base64 and add missing padding
   pemContents = pemContents.replace(/-/g, '+').replace(/_/g, '/');
   const padLen = pemContents.length % 4;
   if (padLen) pemContents += '='.repeat(4 - padLen);
+  
+  console.log('Final PEM contents length:', pemContents.length);
+  console.log('About to call atob with:', pemContents.substring(0, 20));
   
   // Convert base64 to ArrayBuffer
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
