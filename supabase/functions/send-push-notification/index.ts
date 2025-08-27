@@ -38,13 +38,18 @@ async function getAccessToken(): Promise<string> {
   // Import private key - handle both escaped and actual newlines
   const keyData = privateKey.replace(/\\n/g, '\n');
   
-  // Remove header, footer, and whitespace from PEM
-  const pemContents = keyData
+  // Remove header, footer, and whitespace from PEM, then normalize/pad base64
+  let pemContents = keyData
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
     .replace(/\r/g, '')
     .replace(/\n/g, '')
     .replace(/\s/g, '');
+
+  // Normalize potential URL-safe base64 and add missing padding
+  pemContents = pemContents.replace(/-/g, '+').replace(/_/g, '/');
+  const padLen = pemContents.length % 4;
+  if (padLen) pemContents += '='.repeat(4 - padLen);
   
   // Convert base64 to ArrayBuffer
   const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
