@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB0_Placeholder_Key", // This will be replaced by environment variables in production
-  authDomain: "project.firebaseapp.com",
-  projectId: "project-id",
-  storageBucket: "project.appspot.com", 
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456789"
+  apiKey: "AIzaSyA0aR3ZEyn5uqB6AbqcDtmcHL03o0LIZ1o",
+  authDomain: "orbitping.firebaseapp.com",
+  projectId: "orbitping",
+  storageBucket: "orbitping.firebasestorage.app",
+  messagingSenderId: "78766485282",
+  appId: "1:78766485282:web:44cf91211b92ae83027f7b"
 };
 
 // Initialize Firebase
