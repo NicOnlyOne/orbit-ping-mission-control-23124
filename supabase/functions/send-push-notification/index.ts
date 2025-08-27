@@ -37,7 +37,7 @@ async function getAccessToken(): Promise<string> {
     scope: "https://www.googleapis.com/auth/firebase.messaging"
   };
 
-  // Sanitize and import private key as CryptoKey (PKCS8)
+  // Clean and normalize the private key for djwt
   let key = privateKey.trim();
 
   // Strip wrapping quotes if present
@@ -48,39 +48,10 @@ async function getAccessToken(): Promise<string> {
   // Normalize escaped newlines and remove CR
   key = key.replace(/\\n/g, '\n').replace(/\r/g, '');
 
-  // Helper to convert PEM/Base64 to ArrayBuffer (PKCS8 DER)
-  function pemToArrayBuffer(pemOrBase64: string): ArrayBuffer {
-    let base64 = pemOrBase64;
-    const begin = '-----BEGIN PRIVATE KEY-----';
-    const end = '-----END PRIVATE KEY-----';
-    if (base64.includes(begin)) {
-      const start = base64.indexOf(begin) + begin.length;
-      const stop = base64.indexOf(end);
-      base64 = base64.slice(start, stop);
-    }
-    base64 = base64.replace(/[^A-Za-z0-9+/=_-]/g, '');
-    base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-    const pad = base64.length % 4;
-    if (pad) base64 += '='.repeat(4 - pad);
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-  }
+  console.log('Using key with djwt, length:', key.length);
 
-  const pkcs8Der = pemToArrayBuffer(key);
-  console.log('PKCS8 DER byteLength:', (pkcs8Der as ArrayBuffer).byteLength);
-
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    pkcs8Der,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-
-  // Sign JWT with RS256 using CryptoKey
-  const jwt = await create({ alg: 'RS256', typ: 'JWT' }, payload, cryptoKey);
+  // Use djwt with PEM string directly (RS256)
+  const jwt = await create({ alg: 'RS256', typ: 'JWT' }, payload, key);
 
   // Exchange JWT for access token
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
