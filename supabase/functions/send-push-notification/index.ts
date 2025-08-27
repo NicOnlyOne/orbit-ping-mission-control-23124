@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { create } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,9 +26,9 @@ async function getAccessToken(): Promise<string> {
 
   console.log('Attempting to create JWT with client email:', clientEmail);
 
-  // Create JWT payload
+  // Create JWT claims
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
+  const claims = {
     iss: clientEmail,
     sub: clientEmail,
     aud: "https://oauth2.googleapis.com/token",
@@ -37,28 +37,66 @@ async function getAccessToken(): Promise<string> {
     scope: "https://www.googleapis.com/auth/firebase.messaging"
   };
 
-  // Clean and normalize the private key for djwt
+  // Normalize the private key (handle quotes and escaped newlines)
   let key = privateKey.trim();
-
-  // Strip wrapping quotes if present
   if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith('\'') && key.endsWith('\''))) {
     key = key.slice(1, -1);
   }
-
-  // Normalize escaped newlines and remove CR
   key = key.replace(/\\n/g, '\n').replace(/\r/g, '');
+  console.log('Normalized private key length:', key.length);
 
-  console.log('Using key with djwt, length:', key.length);
+  // Helper to base64url-encode input
+  const encoder = new TextEncoder();
+  const base64url = (input: ArrayBuffer | Uint8Array | string): string => {
+    let bytes: Uint8Array;
+    if (typeof input === 'string') bytes = encoder.encode(input);
+    else if (input instanceof Uint8Array) bytes = input;
+    else bytes = new Uint8Array(input);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = btoa(binary);
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  };
 
-  // Use djwt with PEM string directly (RS256)
-  const jwt = await create({ alg: 'RS256', typ: 'JWT' }, payload, key);
+  // Build unsigned token header.payload
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const encodedHeader = base64url(JSON.stringify(header));
+  const encodedPayload = base64url(JSON.stringify(claims));
+  const unsigned = `${encodedHeader}.${encodedPayload}`;
+
+  // Import PKCS#8 private key and sign
+  const begin = '-----BEGIN PRIVATE KEY-----';
+  const end = '-----END PRIVATE KEY-----';
+  let base64 = key;
+  if (base64.includes(begin)) {
+    base64 = base64.slice(base64.indexOf(begin) + begin.length, base64.indexOf(end));
+  }
+  base64 = base64.replace(/[\n\r\s]/g, '');
+  const binaryDer = atob(base64);
+  const derBytes = new Uint8Array(binaryDer.length);
+  for (let i = 0; i < binaryDer.length; i++) derBytes[i] = binaryDer.charCodeAt(i);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'pkcs8',
+    derBytes.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    cryptoKey,
+    encoder.encode(unsigned)
+  );
+  const jwt = `${unsigned}.${base64url(signature)}`;
 
   // Exchange JWT for access token
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion: jwt,
     }),
   });
