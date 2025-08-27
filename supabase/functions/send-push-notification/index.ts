@@ -35,13 +35,15 @@ async function getAccessToken(): Promise<string> {
     scope: "https://www.googleapis.com/auth/firebase.messaging"
   };
 
-  // Import private key
+  // Import private key - handle both escaped and actual newlines
   const keyData = privateKey.replace(/\\n/g, '\n');
   
   // Remove header, footer, and whitespace from PEM
   const pemContents = keyData
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\r/g, '')
+    .replace(/\n/g, '')
     .replace(/\s/g, '');
   
   // Convert base64 to ArrayBuffer
