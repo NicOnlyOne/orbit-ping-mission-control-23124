@@ -159,6 +159,27 @@ All colors MUST be HSL.
     100% { opacity: 0.3; transform: scale(0.8); }
   }
 
+  /* Performance optimizations to prevent forced reflows */
+  .animate-orbit {
+    will-change: transform;
+    contain: layout style paint;
+  }
+  
+  .animate-pulse-glow {
+    will-change: box-shadow;
+    contain: layout style paint;
+  }
+  
+  .animate-float {
+    will-change: transform;
+    contain: layout style paint;
+  }
+  
+  .animate-starfield {
+    will-change: opacity, transform;
+    contain: layout style paint;
+  }
+
   /* Space Particles Background */
   .space-particles {
     position: fixed;
@@ -168,6 +189,8 @@ All colors MUST be HSL.
     height: 100%;
     pointer-events: none;
     z-index: -1;
+    will-change: auto;
+    contain: layout style paint;
   }
   
   .space-particles::before {
@@ -185,5 +208,7 @@ All colors MUST be HSL.
     background-repeat: repeat;
     background-size: 200px 100px;
     animation: starfield 3s ease-in-out infinite alternate;
+    will-change: opacity, transform;
+    contain: layout style paint;
   }
 }
