@@ -22,10 +22,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Suspense fallback={
-            <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl mb-4">🛰️</div>
-                <div className="text-lg text-foreground">Loading mission control...</div>
+            <div className="loading-fallback">
+              <div>
+                <div>🛰️</div>
+                <div>Loading mission control...</div>
               </div>
             </div>
           }>

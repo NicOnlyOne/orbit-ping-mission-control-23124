@@ -15,6 +15,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Critical CSS for loading state to prevent FOUC -->
+    <style>
+      body { margin: 0; background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 50%, #2a2f3e 100%); color: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      #root { min-height: 100vh; }
+      .loading-fallback { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+      .loading-fallback div:first-child { font-size: 3rem; margin-bottom: 1rem; }
+      .loading-fallback div:last-child { font-size: 1.125rem; }
+    </style>
+    
+    <!-- Async CSS loading to prevent render blocking -->
+    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
   </head>
 
   <body>
