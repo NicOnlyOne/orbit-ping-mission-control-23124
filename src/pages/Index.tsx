@@ -112,9 +112,9 @@ const Index = () => {
           {/* Mission Status Overview */}
           <Card className="bg-space-medium/80 backdrop-blur-sm border-space-light max-w-2xl mx-auto">
             <CardHeader>
-              <CardTitle className="text-center text-xl">
+              <h2 className="text-2xl font-semibold leading-none tracking-tight text-center">
                 🛰️ Global Mission Status
-              </CardTitle>
+              </h2>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -134,9 +134,9 @@ const Index = () => {
       <section className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+            <h3 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
               🛰️ Mission Control Center
-            </h2>
+            </h3>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
               Monitor your digital assets like a space mission. Get instant alerts when systems go dark, 
               track uptime like orbital trajectories, and maintain mission-critical reliability.
@@ -283,9 +283,9 @@ const Index = () => {
         ) : (
           <section className="py-20 px-6 text-center">
             <div className="max-w-4xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+              <h3 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
                 Ready for Liftoff?
-              </h2>
+              </h3>
               <p className="text-xl text-muted-foreground mb-12">
                 Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
               </p>
