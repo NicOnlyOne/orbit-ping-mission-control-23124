@@ -67,21 +67,31 @@ serve(async (req) => {
 
     console.log('Sending FCM message:', { title, body, token: token.substring(0, 20) + '...' });
 
-    // Send notification via FCM
+    // Send notification via FCM (Legacy HTTP API)
     const response = await fetch('https://fcm.googleapis.com/fcm/send', {
       method: 'POST',
       headers: {
         'Authorization': `key=${serverKey}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       },
       body: JSON.stringify(message),
     });
 
-    const result = await response.json();
-    
+    const raw = await response.text();
+    let result: any = raw;
+    try {
+      result = JSON.parse(raw);
+    } catch (_) {
+      // keep raw HTML/text for debugging
+    }
+
     if (!response.ok) {
-      console.error('FCM error response:', result);
-      throw new Error(`FCM error: ${result.error || 'Unknown error'}`);
+      console.error('FCM error response:', { status: response.status, result });
+      return new Response(
+        JSON.stringify({ success: false, status: response.status, result }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     console.log('FCM response:', result);
