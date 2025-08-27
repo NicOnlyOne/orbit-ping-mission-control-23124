@@ -26,7 +26,7 @@ try {
 }
 
 // VAPID key - get from Firebase Console Cloud Messaging settings
-const VAPID_KEY = 'BPkoOndd5JzcoWyjXotg2ilYnDKHe_nLDXPzdKriP62Jcf4pdAjvoNoNDKGhKLHUBuSVhkEs3Z20POt7osdXEoc';
+export const VAPID_KEY = 'BPkoOndd5JzcoWyjXotg2ilYnDKHe_nLDXPzdKriP62Jcf4pdAjvoNoNDKGhKLHUBuSVhkEs3Z20POt7osdXEoc';
 
 export { messaging, app };
 

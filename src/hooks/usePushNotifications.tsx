@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { requestNotificationPermission, onMessageListener } from '@/lib/firebase';
+import { requestNotificationPermission, onMessageListener, messaging, VAPID_KEY } from '@/lib/firebase';
+import { getToken as getFCMToken } from 'firebase/messaging';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-
 export const usePushNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(false);
@@ -144,7 +144,28 @@ export const usePushNotifications = () => {
 
   // Send test notification
   const sendTestNotification = useCallback(async () => {
-    if (!token) {
+    let effectiveToken = token;
+
+    if (!effectiveToken) {
+      // Try to read the saved token from the database
+      try {
+        if (!user) throw new Error('No user');
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('fcm_token')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!error && data?.fcm_token) {
+          effectiveToken = data.fcm_token as string;
+          setToken(effectiveToken);
+        }
+      } catch (e) {
+        // ignore, will handle below
+      }
+    }
+
+    if (!effectiveToken) {
       toast({
         title: 'No Token',
         description: 'Please enable notifications first.',
@@ -156,7 +177,7 @@ export const usePushNotifications = () => {
     try {
       const { data, error } = await supabase.functions.invoke('send-push-notification', {
         body: {
-          token,
+          token: effectiveToken,
           title: '🛰️ OrbitPing Test Alert',
           body: 'This is a test notification from Mission Control!',
           data: {
@@ -180,7 +201,7 @@ export const usePushNotifications = () => {
         variant: 'destructive',
       });
     }
-  }, [token, toast]);
+  }, [token, toast, user]);
 
   return {
     isSupported,
