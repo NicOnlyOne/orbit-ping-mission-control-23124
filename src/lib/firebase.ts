@@ -25,8 +25,8 @@ try {
   console.warn('Firebase messaging not available:', error);
 }
 
-// VAPID key - this will be provided by Firebase Console
-const VAPID_KEY = 'your-vapid-key'; // This will be configured from environment
+// VAPID key - get from Firebase Console Cloud Messaging settings
+const VAPID_KEY = 'BNxaOsVJR2iJnr3gHjMzQKW8vVr8Zq-BZW5K9WKuY8_4x8J_XXXX'; // You need to replace this with your actual VAPID key
 
 export { messaging, app };
 
