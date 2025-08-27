@@ -16,17 +16,60 @@
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
     
-    <!-- Critical CSS for loading state to prevent FOUC -->
+    <!-- Critical CSS for faster initial render -->
     <style>
-      body { margin: 0; background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 50%, #2a2f3e 100%); color: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      /* Critical base styles */
+      body { 
+        margin: 0; 
+        background: linear-gradient(135deg, #0a0f1c 0%, #1a1f2e 50%, #2a2f3e 100%); 
+        color: #ffffff; 
+        font-family: system-ui, -apple-system, sans-serif;
+        min-height: 100vh;
+      }
       #root { min-height: 100vh; }
-      .loading-fallback { min-height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center; }
+      
+      /* Loading state */
+      .loading-fallback { 
+        min-height: 100vh; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        text-align: center; 
+      }
       .loading-fallback div:first-child { font-size: 3rem; margin-bottom: 1rem; }
       .loading-fallback div:last-child { font-size: 1.125rem; }
+      
+      /* Critical layout styles */
+      .min-h-screen { min-height: 100vh; }
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-center { justify-content: center; }
+      .text-center { text-align: center; }
+      .bg-gradient-to-br { background: linear-gradient(135deg, var(--tw-gradient-stops)); }
+      .from-space-deep { --tw-gradient-from: #0a0f1c; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(10, 15, 28, 0)); }
+      .via-space-dark { --tw-gradient-to: #1a1f2e; --tw-gradient-stops: var(--tw-gradient-from), #1a1f2e, var(--tw-gradient-to, rgba(26, 31, 46, 0)); }
+      .to-space-medium { --tw-gradient-to: #2a2f3e; }
+      
+      /* Prevent FOUC */
+      .space-y-6 > * + * { margin-top: 1.5rem; }
+      .p-8 { padding: 2rem; }
+      .text-6xl { font-size: 3.75rem; line-height: 1; }
+      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-8 { margin-bottom: 2rem; }
     </style>
     
-    <!-- Async CSS loading to prevent render blocking -->
-    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Optimized async CSS loading -->
+    <script>
+      (function() {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/src/index.css';
+        link.media = 'print';
+        link.onload = function() { this.media = 'all'; };
+        document.head.appendChild(link);
+      })();
+    </script>
     <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
   </head>
 
