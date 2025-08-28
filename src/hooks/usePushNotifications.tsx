@@ -37,6 +37,8 @@ export const usePushNotifications = () => {
           user_id: user.id,
           fcm_token: fcmToken,
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) {
