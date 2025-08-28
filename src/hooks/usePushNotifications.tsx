@@ -164,6 +164,45 @@ useEffect(() => {
     }
   }, [isSupported, toast, saveFCMToken]);
 
+  // Disable notifications
+  const disableNotifications = useCallback(async () => {
+    if (!user) {
+      toast({
+        title: 'Error',
+        description: 'Please log in to manage notifications.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    try {
+      // Clear FCM token from database
+      await supabase
+        .from('profiles')
+        .update({ fcm_token: null })
+        .eq('user_id', user.id);
+
+      // Update local state
+      setToken(null);
+      setIsEnabled(false);
+
+      toast({
+        title: 'Notifications Disabled',
+        description: 'Push notifications have been disabled.',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error disabling notifications:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to disable notifications. Please try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [user, toast]);
+
   // Send test notification
   const sendTestNotification = useCallback(async () => {
     let effectiveToken = token;
@@ -231,6 +270,7 @@ useEffect(() => {
     isLoading,
     token,
     enableNotifications,
+    disableNotifications,
     sendTestNotification,
   };
 };

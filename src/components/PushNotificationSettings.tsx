@@ -10,7 +10,8 @@ export const PushNotificationSettings = () => {
     isSupported, 
     isEnabled, 
     isLoading, 
-    enableNotifications, 
+    enableNotifications,
+    disableNotifications, 
     sendTestNotification 
   } = usePushNotifications();
 
@@ -72,6 +73,8 @@ export const PushNotificationSettings = () => {
             onCheckedChange={async (checked) => {
               if (checked && !isEnabled) {
                 await enableNotifications();
+              } else if (!checked && isEnabled) {
+                await disableNotifications();
               }
             }}
           />
