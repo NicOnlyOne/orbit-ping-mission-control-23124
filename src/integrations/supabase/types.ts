@@ -176,6 +176,7 @@ export type Database = {
           id: string
           notification_email: boolean | null
           notification_preferences: Json | null
+          phone_number: string | null
           updated_at: string
           user_id: string
         }
@@ -188,6 +189,7 @@ export type Database = {
           id?: string
           notification_email?: boolean | null
           notification_preferences?: Json | null
+          phone_number?: string | null
           updated_at?: string
           user_id: string
         }
@@ -200,6 +202,7 @@ export type Database = {
           id?: string
           notification_email?: boolean | null
           notification_preferences?: Json | null
+          phone_number?: string | null
           updated_at?: string
           user_id?: string
         }

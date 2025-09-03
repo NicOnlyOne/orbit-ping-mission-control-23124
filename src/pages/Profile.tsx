@@ -9,16 +9,24 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { PasswordStrengthChecker } from "@/components/PasswordStrengthChecker";
 import { Navigation } from "@/components/Navigation";
+import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserProfile {
   full_name: string;
   email: string;
+  phone_number: string;
   notification_email: boolean;
+  notification_preferences: {
+    alerts: boolean;
+    downtime: boolean;
+    recovery: boolean;
+    sms: boolean;
+  };
 }
 
 const Profile = () => {
@@ -28,7 +36,14 @@ const Profile = () => {
   const [profile, setProfile] = useState<UserProfile>({
     full_name: "",
     email: "",
-    notification_email: true
+    phone_number: "",
+    notification_email: true,
+    notification_preferences: {
+      alerts: true,
+      downtime: true,
+      recovery: true,
+      sms: true
+    }
   });
   
   const [passwords, setPasswords] = useState({
@@ -58,7 +73,7 @@ const Profile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, email, notification_email')
+        .select('full_name, email, phone_number, notification_email, notification_preferences')
         .eq('user_id', user?.id)
         .maybeSingle();
 
@@ -68,23 +83,46 @@ const Profile = () => {
         setProfile({
           full_name: data.full_name || "",
           email: data.email || user?.email || "",
-          notification_email: data.notification_email ?? true
+          phone_number: data.phone_number || "",
+          notification_email: data.notification_email ?? true,
+          notification_preferences: (data.notification_preferences as {
+            alerts: boolean;
+            downtime: boolean;
+            recovery: boolean;
+            sms: boolean;
+          }) || {
+            alerts: true,
+            downtime: true,
+            recovery: true,
+            sms: true
+          }
         });
       } else {
         // Create profile if it doesn't exist
+        const defaultPreferences = {
+          alerts: true,
+          downtime: true,
+          recovery: true,
+          sms: true
+        };
+        
         await supabase
           .from('profiles')
           .insert({
             user_id: user?.id,
             email: user?.email,
             full_name: "",
-            notification_email: true
+            phone_number: "",
+            notification_email: true,
+            notification_preferences: defaultPreferences
           });
         
         setProfile({
           full_name: "",
           email: user?.email || "",
-          notification_email: true
+          phone_number: "",
+          notification_email: true,
+          notification_preferences: defaultPreferences
         });
       }
     } catch (error: any) {
@@ -109,7 +147,9 @@ const Profile = () => {
           user_id: user.id,
           full_name: profile.full_name,
           email: profile.email,
-          notification_email: profile.notification_email
+          phone_number: profile.phone_number,
+          notification_email: profile.notification_email,
+          notification_preferences: profile.notification_preferences
         });
 
       if (error) throw error;
@@ -217,8 +257,7 @@ const Profile = () => {
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
       <Navigation />
       
-      <div className="pt-20"> {/* Add padding for fixed navigation */}
-        {/* Page Header */}
+      <div className="pt-20">
         <div className="bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
             <Link to="/">
@@ -279,6 +318,18 @@ const Profile = () => {
                   </p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <PhoneNumberInput
+                value={profile.phone_number}
+                onChange={(phone) => setProfile(prev => ({ ...prev, phone_number: phone }))}
+                label="Phone Number"
+                placeholder="Enter your phone number"
+              />
+              <p className="text-sm text-muted-foreground">
+                Used for SMS alerts when your monitored sites go offline
+              </p>
             </div>
 
             <Button onClick={updateProfile} disabled={isLoading} className="w-full md:w-auto">
@@ -379,18 +430,106 @@ const Profile = () => {
               Notification Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="font-medium">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">
-                  Receive email alerts when your monitored sites go offline
-                </p>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="font-medium">Email Notifications</p>
+                  <p className="text-sm text-muted-foreground">
+                    Receive email alerts when your monitored sites go offline
+                  </p>
+                </div>
+                <Switch
+                  checked={profile.notification_email}
+                  onCheckedChange={(checked) => setProfile(prev => ({ ...prev, notification_email: checked }))}
+                />
               </div>
-              <Switch
-                checked={profile.notification_email}
-                onCheckedChange={(checked) => setProfile(prev => ({ ...prev, notification_email: checked }))}
-              />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="font-medium flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    SMS Notifications
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Receive SMS alerts when your monitored sites go offline
+                  </p>
+                  {!profile.phone_number && (
+                    <p className="text-sm text-orange-500">
+                      Please add a phone number above to enable SMS notifications
+                    </p>
+                  )}
+                </div>
+                <Switch
+                  checked={profile.notification_preferences.sms && !!profile.phone_number}
+                  onCheckedChange={(checked) => setProfile(prev => ({ 
+                    ...prev, 
+                    notification_preferences: { 
+                      ...prev.notification_preferences, 
+                      sms: checked 
+                    } 
+                  }))}
+                  disabled={!profile.phone_number}
+                />
+              </div>
+            </div>
+            
+            <Separator className="bg-space-light" />
+
+            <div className="space-y-4">
+              <h4 className="font-medium">Alert Types</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Downtime Alerts</p>
+                    <p className="text-xs text-muted-foreground">When sites go offline</p>
+                  </div>
+                  <Switch
+                    checked={profile.notification_preferences.downtime}
+                    onCheckedChange={(checked) => setProfile(prev => ({ 
+                      ...prev, 
+                      notification_preferences: { 
+                        ...prev.notification_preferences, 
+                        downtime: checked 
+                      } 
+                    }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Recovery Alerts</p>
+                    <p className="text-xs text-muted-foreground">When sites come back online</p>
+                  </div>
+                  <Switch
+                    checked={profile.notification_preferences.recovery}
+                    onCheckedChange={(checked) => setProfile(prev => ({ 
+                      ...prev, 
+                      notification_preferences: { 
+                        ...prev.notification_preferences, 
+                        recovery: checked 
+                      } 
+                    }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">General Alerts</p>
+                    <p className="text-xs text-muted-foreground">Other important notifications</p>
+                  </div>
+                  <Switch
+                    checked={profile.notification_preferences.alerts}
+                    onCheckedChange={(checked) => setProfile(prev => ({ 
+                      ...prev, 
+                      notification_preferences: { 
+                        ...prev.notification_preferences, 
+                        alerts: checked 
+                      } 
+                    }))}
+                  />
+                </div>
+              </div>
             </div>
             
             <Separator className="bg-space-light" />
