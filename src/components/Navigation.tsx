@@ -1,10 +1,47 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+interface UserProfile {
+  full_name: string;
+  avatar_url: string | null;
+}
 
 export function Navigation() {
   const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadProfile();
+    }
+  }, [user]);
+
+  const loadProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
+  };
 
   return (
     <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
@@ -16,27 +53,44 @@ export function Navigation() {
         
         <div className="flex items-center gap-4">
           {user ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{user.email}</span>
-              </div>
-              <Link to="/profile">
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="flex items-center gap-3 text-muted-foreground hover:text-foreground px-3 py-2"
+                >
+                  <Avatar className="h-8 w-8">
+                    {profile?.avatar_url ? (
+                      <AvatarImage 
+                        src={profile.avatar_url} 
+                        alt={profile.full_name || "User avatar"} 
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-muted">
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex items-center gap-2">
+                    <span className="hidden sm:inline font-medium">
+                      {profile?.full_name || user.email}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
                 </Button>
-              </Link>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => signOut()} 
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center w-full">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()} className="flex items-center w-full">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/auth">
               <Button variant="outline" size="sm">
