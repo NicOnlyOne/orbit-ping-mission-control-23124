@@ -62,16 +62,24 @@ const plans = [
 export function PricingModal({ open, onOpenChange }: PricingModalProps) {
   const { plan: currentPlan, upgradePlan } = useSubscription();
 
-  const handleUpgrade = async (planId: typeof plans[0]['id']) => {
+  // Plan hierarchy for determining upgrade vs downgrade
+  const planHierarchy = { free: 0, pro: 1, enterprise: 2 };
+
+  const isUpgrade = (targetPlan: string) => {
+    return planHierarchy[targetPlan as keyof typeof planHierarchy] > planHierarchy[currentPlan];
+  };
+
+  const handlePlanChange = async (planId: typeof plans[0]['id']) => {
     if (planId === currentPlan) return;
 
     try {
       await upgradePlan(planId);
-      toast.success(`Successfully upgraded to ${planId} plan!`);
+      const action = isUpgrade(planId) ? 'upgraded' : 'changed';
+      toast.success(`Successfully ${action} to ${planId} plan!`);
       onOpenChange(false);
     } catch (error) {
-      toast.error('Failed to upgrade plan. Please try again.');
-      console.error('Upgrade error:', error);
+      toast.error('Failed to change plan. Please try again.');
+      console.error('Plan change error:', error);
     }
   };
 
@@ -94,8 +102,8 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                 className={`relative ${isPopular ? 'border-nebula-blue shadow-lg scale-105' : ''} ${isCurrentPlan ? 'bg-muted/50' : ''}`}
               >
                 {isPopular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                    <span className="bg-gradient-to-r from-nebula-blue to-astro-green text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg border border-white/20">
                       Most Popular
                     </span>
                   </div>
@@ -143,9 +151,12 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                     className="w-full"
                     variant={isCurrentPlan ? "outline" : (isPopular ? "default" : "outline")}
                     disabled={isCurrentPlan}
-                    onClick={() => handleUpgrade(plan.id)}
+                    onClick={() => handlePlanChange(plan.id)}
                   >
-                    {isCurrentPlan ? 'Current Plan' : `Upgrade to ${plan.name}`}
+                    {isCurrentPlan 
+                      ? 'Current Plan' 
+                      : `${isUpgrade(plan.id) ? 'Upgrade' : 'Change'} to ${plan.name}`
+                    }
                   </Button>
                 </CardContent>
               </Card>
