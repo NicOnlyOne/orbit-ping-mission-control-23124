@@ -150,7 +150,7 @@ const Profile = () => {
           phone_number: profile.phone_number,
           notification_email: profile.notification_email,
           notification_preferences: profile.notification_preferences
-        });
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
 
