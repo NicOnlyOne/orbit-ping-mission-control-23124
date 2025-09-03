@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +13,11 @@ import { Navigation } from "@/components/Navigation";
 import { PhoneNumberInput } from "@/components/PhoneNumberInput";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PricingModal } from "@/components/PricingModal";
+import { PlanBadge } from "@/components/PlanBadge";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare, Crown, Smartphone } from "lucide-react";
 
 interface UserProfile {
   full_name: string;
@@ -36,7 +39,9 @@ interface UserProfile {
 
 const Profile = () => {
   const { user, loading } = useAuth();
+  const { plan, features } = useSubscription();
   const { toast } = useToast();
+  const [showPricing, setShowPricing] = useState(false);
   
   const [profile, setProfile] = useState<UserProfile>({
     full_name: "",
@@ -275,6 +280,15 @@ const Profile = () => {
     }
   };
 
+  const handlePlanRestrictedAction = (featureName: string, requiredPlan: string) => {
+    toast({
+      title: "Premium Feature",
+      description: `${featureName} is available on ${requiredPlan} plan and above`,
+      variant: "default"
+    });
+    setShowPricing(true);
+  };
+
   if (loading || isLoadingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
@@ -306,6 +320,7 @@ const Profile = () => {
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               <h1 className="text-2xl font-bold text-foreground">User Profile</h1>
+              <PlanBadge />
             </div>
           </div>
         </div>
@@ -420,9 +435,31 @@ const Profile = () => {
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-primary" />
                 Slack Integration
+                {!features.slackNotifications && (
+                  <div className="flex items-center gap-2 ml-auto">
+                    <span className="text-xs text-muted-foreground">Pro Plan Required</span>
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {!features.slackNotifications && (
+                <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Crown className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">Upgrade to Pro for Slack Notifications</h4>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Get instant alerts in your Slack channels when your sites go down
+                      </p>
+                      <Button size="sm" onClick={() => setShowPricing(true)} className="h-7">
+                        Upgrade to Pro
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="slackUsername">Slack Username</Label>
@@ -432,6 +469,7 @@ const Profile = () => {
                     onChange={(e) => setProfile(prev => ({ ...prev, slack_username: e.target.value }))}
                     placeholder="@username"
                     className="bg-space-dark border-space-light"
+                    disabled={!features.slackNotifications}
                   />
                   <p className="text-sm text-muted-foreground">
                     Your Slack username for notifications
@@ -446,6 +484,7 @@ const Profile = () => {
                     onChange={(e) => setProfile(prev => ({ ...prev, slack_channel: e.target.value }))}
                     placeholder="#channel or @user"
                     className="bg-space-dark border-space-light"
+                    disabled={!features.slackNotifications}
                   />
                   <p className="text-sm text-muted-foreground">
                     Channel or user to send alerts to
@@ -459,22 +498,33 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">
                     Receive alerts in Slack when your sites go offline
                   </p>
-                  {(!profile.slack_username || !profile.slack_channel) && (
+                  {features.slackNotifications && (!profile.slack_username || !profile.slack_channel) && (
                     <p className="text-sm text-orange-500">
                       Please configure Slack username and channel above to enable notifications
                     </p>
                   )}
+                  {!features.slackNotifications && (
+                    <p className="text-sm text-purple-400">
+                      Available on Pro plan and above
+                    </p>
+                  )}
                 </div>
                 <Switch
-                  checked={profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
-                  onCheckedChange={(checked) => setProfile(prev => ({ 
-                    ...prev, 
-                    notification_preferences: { 
-                      ...prev.notification_preferences, 
-                      slack: checked 
-                    } 
-                  }))}
-                  disabled={!profile.slack_username || !profile.slack_channel}
+                  checked={features.slackNotifications && profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
+                  onCheckedChange={(checked) => {
+                    if (!features.slackNotifications) {
+                      handlePlanRestrictedAction("Slack notifications", "Pro");
+                      return;
+                    }
+                    setProfile(prev => ({ 
+                      ...prev, 
+                      notification_preferences: { 
+                        ...prev.notification_preferences, 
+                        slack: checked 
+                      } 
+                    }));
+                  }}
+                  disabled={!features.slackNotifications || (!profile.slack_username || !profile.slack_channel)}
                 />
               </div>
             </CardContent>
@@ -633,44 +683,76 @@ const Profile = () => {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">SMS Notifications</p>
-                          <p className="text-xs text-muted-foreground">Receive alerts via text message</p>
-                          {!profile.phone_number && (
-                            <p className="text-xs text-orange-500">Please add phone number above</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium text-sm">SMS Notifications</p>
+                            <p className="text-xs text-muted-foreground">Receive alerts via text message</p>
+                            {features.smsNotifications && !profile.phone_number && (
+                              <p className="text-xs text-orange-500">Please add phone number above</p>
+                            )}
+                            {!features.smsNotifications && (
+                              <p className="text-xs text-yellow-600">Enterprise plan required</p>
+                            )}
+                          </div>
+                          {!features.smsNotifications && (
+                            <div className="ml-2">
+                              <Crown className="h-4 w-4 text-yellow-500" />
+                            </div>
                           )}
                         </div>
                         <Switch
-                          checked={profile.notification_preferences.sms && !!profile.phone_number}
-                          onCheckedChange={(checked) => setProfile(prev => ({ 
-                            ...prev, 
-                            notification_preferences: { 
-                              ...prev.notification_preferences, 
-                              sms: checked 
-                            } 
-                          }))}
-                          disabled={!profile.phone_number}
+                          checked={features.smsNotifications && profile.notification_preferences.sms && !!profile.phone_number}
+                          onCheckedChange={(checked) => {
+                            if (!features.smsNotifications) {
+                              handlePlanRestrictedAction("SMS notifications", "Enterprise");
+                              return;
+                            }
+                            setProfile(prev => ({ 
+                              ...prev, 
+                              notification_preferences: { 
+                                ...prev.notification_preferences, 
+                                sms: checked 
+                              } 
+                            }));
+                          }}
+                          disabled={!features.smsNotifications || !profile.phone_number}
                         />
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">Slack Notifications</p>
-                          <p className="text-xs text-muted-foreground">Receive alerts in Slack</p>
-                          {(!profile.slack_username || !profile.slack_channel) && (
-                            <p className="text-xs text-orange-500">Please configure Slack integration above</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium text-sm">Slack Notifications</p>
+                            <p className="text-xs text-muted-foreground">Receive alerts in Slack</p>
+                            {features.slackNotifications && (!profile.slack_username || !profile.slack_channel) && (
+                              <p className="text-xs text-orange-500">Please configure Slack integration above</p>
+                            )}
+                            {!features.slackNotifications && (
+                              <p className="text-xs text-purple-400">Pro plan required</p>
+                            )}
+                          </div>
+                          {!features.slackNotifications && (
+                            <div className="ml-2">
+                              <Crown className="h-4 w-4 text-purple-500" />
+                            </div>
                           )}
                         </div>
                         <Switch
-                          checked={profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
-                          onCheckedChange={(checked) => setProfile(prev => ({ 
-                            ...prev, 
-                            notification_preferences: { 
-                              ...prev.notification_preferences, 
-                              slack: checked 
-                            } 
-                          }))}
-                          disabled={!profile.slack_username || !profile.slack_channel}
+                          checked={features.slackNotifications && profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
+                          onCheckedChange={(checked) => {
+                            if (!features.slackNotifications) {
+                              handlePlanRestrictedAction("Slack notifications", "Pro");
+                              return;
+                            }
+                            setProfile(prev => ({ 
+                              ...prev, 
+                              notification_preferences: { 
+                                ...prev.notification_preferences, 
+                                slack: checked 
+                              } 
+                            }));
+                          }}
+                          disabled={!features.slackNotifications || (!profile.slack_username || !profile.slack_channel)}
                         />
                       </div>
                     </div>
@@ -707,6 +789,8 @@ const Profile = () => {
           </Card>
         </div>
       </div>
+      
+      <PricingModal open={showPricing} onOpenChange={setShowPricing} />
     </div>
   );
 };

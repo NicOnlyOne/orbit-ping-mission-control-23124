@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Check, Star, Rocket, Crown } from "lucide-react";
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
@@ -286,6 +286,142 @@ const Index = () => {
               </div>}      
         </div>
       </section>
+
+      {/* Pricing Section for Anonymous Users */}
+      {!user && (
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                Choose Your Mission Plan
+              </h2>
+              <p className="text-xl text-muted-foreground">
+                Scale your monitoring needs with our flexible pricing
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Free Plan */}
+              <Card className="bg-space-medium border-space-light relative">
+                <CardHeader className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <Star className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <CardTitle>Free</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">$0</span>
+                    <span className="text-muted-foreground">/forever</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">1 active monitor</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Email alerts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Basic uptime tracking</span>
+                    </li>
+                  </ul>
+                  <Link to="/auth">
+                    <Button variant="outline" className="w-full">
+                      Get Started Free
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Pro Plan */}
+              <Card className="bg-space-medium border-nebula-blue shadow-lg scale-105 relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
+                    Most Popular
+                  </span>
+                </div>
+                <CardHeader className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <Rocket className="h-8 w-8 text-nebula-blue" />
+                  </div>
+                  <CardTitle>Pro</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">$9</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Unlimited monitors</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Email alerts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Slack notifications</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Advanced analytics</span>
+                    </li>
+                  </ul>
+                  <Link to="/auth">
+                    <Button className="w-full bg-nebula-blue hover:bg-nebula-blue/90">
+                      Start Pro Trial
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Enterprise Plan */}
+              <Card className="bg-space-medium border-space-light relative">
+                <CardHeader className="text-center">
+                  <div className="flex items-center justify-center mb-2">
+                    <Crown className="h-8 w-8 text-yellow-500" />
+                  </div>
+                  <CardTitle>Enterprise</CardTitle>
+                  <div className="mt-4">
+                    <span className="text-4xl font-bold">$29</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Everything in Pro</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">SMS notifications</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Custom alerting rules</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Priority support</span>
+                    </li>
+                  </ul>
+                  <Link to="/auth">
+                    <Button variant="outline" className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black">
+                      Contact Sales
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
        {user ? (
