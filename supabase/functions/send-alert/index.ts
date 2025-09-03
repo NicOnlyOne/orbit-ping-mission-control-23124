@@ -82,7 +82,30 @@ const handler = async (req: Request): Promise<Response> => {
       ? `🚨 ALERT: ${monitor.name} is DOWN!\n\nURL: ${url}\nTime: ${new Date().toLocaleString()}\n${errorMessage ? `Error: ${errorMessage}` : ''}\n\nCheck your dashboard for more details.`
       : `✅ RECOVERY: ${monitor.name} is back ONLINE!\n\nURL: ${url}\nTime: ${new Date().toLocaleString()}\n${responseTime ? `Response time: ${responseTime}ms` : ''}\n\nYour site is now operational.`;
 
-    const results = { email: null, sms: null };
+    const results = { email: null, sms: null, slack: null };
+
+    // Send Slack notification
+    if (notifications.slack) {
+      try {
+        const slackColor = isDown ? 'danger' : 'good';
+        const slackResult = await supabaseClient.functions.invoke('notify-slack', {
+          body: {
+            message: alertMessage,
+            title: isDown ? `🚨 Monitor Alert: ${monitor.name} is DOWN` : `✅ Monitor Recovery: ${monitor.name} is ONLINE`,
+            color: slackColor,
+            url: url,
+            monitorName: monitor.name,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        results.slack = slackResult;
+        console.log("Slack alert sent:", slackResult);
+      } catch (slackError) {
+        console.error("Slack alert failed:", slackError);
+        results.slack = { error: slackError };
+      }
+    }
 
     // Send email notification
     if (profile.notification_email) {
