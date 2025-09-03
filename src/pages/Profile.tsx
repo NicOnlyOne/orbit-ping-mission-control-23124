@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { PasswordStrengthChecker } from "@/components/PasswordStrengthChecker";
 import { Navigation } from "@/components/Navigation";
-import { PushNotificationSettings } from "@/components/PushNotificationSettings";
+
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff } from "lucide-react";
@@ -402,8 +402,6 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        {/* Push Notification Settings */}
-        <PushNotificationSettings />
       </div>
       </div>
     </div>
