@@ -14,47 +14,76 @@ const plans = [
   {
     id: 'free' as const,
     name: 'Free',
-    price: '$0',
-    period: 'forever',
+    price: '€0',
+    period: 'month',
     icon: Star,
-    description: 'Perfect for getting started',
+    description: 'Great for small projects or testing your "mission control."',
     features: [
-      '1 active monitor',
+      '5 monitors',
+      '5-minute checks',
       'Email alerts',
-      'Basic uptime tracking',
-      'Community support'
-    ],
-    limitations: ['Limited to 1 active monitor']
+      'Basic uptime tracking'
+    ]
   },
   {
-    id: 'pro' as const,
+    id: 'pro-25' as const,
     name: 'Pro',
-    price: '$9',
-    period: 'per month',
+    price: '€12',
+    period: 'month',
     icon: Rocket,
-    description: 'Best for small teams',
+    description: 'Powerful for small teams who want fast alerts and better tracking.',
     features: [
-      'Unlimited monitors',
+      '25 monitors',
+      '1-minute checks',
       'Email alerts',
-      'Slack notifications',
-      'Advanced analytics',
-      'Priority support'
+      'Slack notifications'
     ],
     popular: true
   },
   {
-    id: 'enterprise' as const,
-    name: 'Enterprise',
-    price: '$29',
-    period: 'per month',
-    icon: Crown,
-    description: 'For mission-critical operations',
+    id: 'pro-50' as const,
+    name: 'Pro+',
+    price: '€19',
+    period: 'month',
+    icon: Rocket,
+    description: 'More monitors for growing teams.',
     features: [
-      'Everything in Pro',
+      '50 monitors',
+      '1-minute checks',
+      'Email alerts',
+      'Slack notifications'
+    ]
+  },
+  {
+    id: 'enterprise-100' as const,
+    name: 'Enterprise',
+    price: '€49',
+    period: 'month',
+    icon: Crown,
+    description: 'Perfect for critical services where real-time phone alerts matter.',
+    features: [
+      '100 monitors',
+      '30-second checks',
+      'Email alerts',
+      'Slack notifications',
       'SMS notifications',
-      'Custom alerting rules',
-      'SLA monitoring',
-      'Dedicated support'
+      '100 SMS included/month'
+    ]
+  },
+  {
+    id: 'enterprise-250' as const,
+    name: 'Enterprise+',
+    price: '€99',
+    period: 'month',
+    icon: Crown,
+    description: 'Maximum capacity for large operations.',
+    features: [
+      '250 monitors',
+      '30-second checks',
+      'Email alerts',
+      'Slack notifications',
+      'SMS notifications',
+      '100 SMS included/month'
     ]
   }
 ];
@@ -63,7 +92,13 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
   const { plan: currentPlan, upgradePlan } = useSubscription();
 
   // Plan hierarchy for determining upgrade vs downgrade
-  const planHierarchy = { free: 0, pro: 1, enterprise: 2 };
+  const planHierarchy = { 
+    free: 0, 
+    'pro-25': 1, 
+    'pro-50': 2, 
+    'enterprise-100': 3, 
+    'enterprise-250': 4 
+  };
 
   const isUpgrade = (targetPlan: string) => {
     return planHierarchy[targetPlan as keyof typeof planHierarchy] > planHierarchy[currentPlan];
@@ -90,7 +125,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
           <DialogTitle className="text-2xl text-center">Choose Your Mission Plan</DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mt-6">
           {plans.map((plan) => {
             const Icon = plan.icon;
             const isCurrentPlan = currentPlan === plan.id;
@@ -138,16 +173,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                     ))}
                   </ul>
                   
-                  {plan.limitations && (
-                    <div className="mb-4 p-3 bg-muted rounded-lg">
-                      <h4 className="text-xs font-medium text-muted-foreground mb-2">Limitations:</h4>
-                      {plan.limitations.map((limitation, index) => (
-                        <p key={index} className="text-xs text-muted-foreground">{limitation}</p>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <Button 
+                  <Button
                     className="w-full"
                     variant={isCurrentPlan ? "outline" : (isPopular ? "default" : "outline")}
                     disabled={isCurrentPlan}

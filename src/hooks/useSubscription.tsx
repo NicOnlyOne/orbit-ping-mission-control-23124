@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-export type SubscriptionPlan = 'free' | 'pro' | 'enterprise';
+export type SubscriptionPlan = 'free' | 'pro-25' | 'pro-50' | 'enterprise-100' | 'enterprise-250';
 
 interface SubscriptionContextType {
   plan: SubscriptionPlan;
@@ -30,12 +30,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const getFeatures = (currentPlan: SubscriptionPlan) => ({
     emailAlerts: true, // All plans have email
-    slackNotifications: currentPlan === 'pro' || currentPlan === 'enterprise',
-    smsNotifications: currentPlan === 'enterprise',
+    slackNotifications: currentPlan.startsWith('pro-') || currentPlan.startsWith('enterprise-'),
+    smsNotifications: currentPlan.startsWith('enterprise-'),
   });
 
   const getMaxMonitors = (currentPlan: SubscriptionPlan) => {
-    return currentPlan === 'free' ? 1 : null; // null means unlimited
+    switch (currentPlan) {
+      case 'free': return 5;
+      case 'pro-25': return 25;
+      case 'pro-50': return 50;
+      case 'enterprise-100': return 100;
+      case 'enterprise-250': return 250;
+      default: return 5;
+    }
   };
 
   const refreshSubscription = async () => {
@@ -63,11 +70,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       setEnabledMonitorCount(enabledCount);
 
       // Check if user can enable more monitors
-      if (userPlan === 'free') {
-        setCanEnableMonitor(enabledCount < 1);
-      } else {
-        setCanEnableMonitor(true); // Pro and Enterprise have unlimited
-      }
+      const maxMonitors = getMaxMonitors(userPlan);
+      setCanEnableMonitor(enabledCount < maxMonitors);
     } catch (error) {
       console.error('Error refreshing subscription:', error);
     } finally {

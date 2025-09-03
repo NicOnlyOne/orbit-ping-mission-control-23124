@@ -14,14 +14,26 @@ const planConfig = {
     variant: "secondary" as const,
     className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
   },
-  pro: {
+  'pro-25': {
     label: "Pro",
     icon: Rocket,
     variant: "default" as const,
     className: "bg-nebula-blue text-white"
   },
-  enterprise: {
+  'pro-50': {
+    label: "Pro+",
+    icon: Rocket,
+    variant: "default" as const,
+    className: "bg-nebula-blue text-white"
+  },
+  'enterprise-100': {
     label: "Enterprise",
+    icon: Crown,
+    variant: "default" as const,
+    className: "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+  },
+  'enterprise-250': {
+    label: "Enterprise+",
     icon: Crown,
     variant: "default" as const,
     className: "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
