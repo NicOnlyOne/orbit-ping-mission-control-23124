@@ -33,7 +33,7 @@ const Profile = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState<UserProfile>({
+  const [profile, setProfile] = useState({
     full_name: "",
     email: "",
     phone_number: "",
@@ -47,7 +47,7 @@ const Profile = () => {
       sms: true,
       slack: false
     }
-  });
+  } as UserProfile);
   
   const [passwords, setPasswords] = useState({
     current: "",
