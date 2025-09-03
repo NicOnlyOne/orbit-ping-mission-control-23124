@@ -143,10 +143,21 @@ const handler = async (req: Request): Promise<Response> => {
           })
           .eq('id', smsLog.id);
 
+        // Check for trial account specific errors
+        const isTrial = twilioData.error_message?.includes('trial') || 
+                       twilioData.error_message?.includes('verified') ||
+                       twilioData.error_code === '21608';
+
+        const errorMessage = isTrial 
+          ? "Twilio trial account: Can only send SMS to verified phone numbers. Please verify this number in your Twilio console or upgrade your account."
+          : `Failed to send SMS: ${twilioData.error_message || 'Unknown Twilio error'}`;
+
         return new Response(
           JSON.stringify({ 
-            error: "Failed to send SMS", 
-            details: twilioData.error_message 
+            error: errorMessage,
+            details: twilioData.error_message,
+            error_code: twilioData.error_code,
+            is_trial_limitation: isTrial
           }),
           { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );

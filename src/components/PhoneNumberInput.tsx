@@ -50,11 +50,21 @@ export const PhoneNumberInput = ({
       if (error) {
         console.error('SMS validation error:', error);
         setValidationStatus('error');
-        toast({
-          title: "Validation Failed",
-          description: error.message || "Failed to send validation SMS",
-          variant: "destructive"
-        });
+        
+        // Handle trial account limitation
+        if (error.message?.includes('trial') || error.message?.includes('verified')) {
+          toast({
+            title: "Twilio Trial Account Limitation",
+            description: "Your phone number needs to be verified in Twilio console first, or upgrade to a paid account to send to any number.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Validation Failed",
+            description: error.message || "Failed to send validation SMS",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
