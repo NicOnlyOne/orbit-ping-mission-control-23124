@@ -45,6 +45,8 @@ const handler = async (req: Request): Promise<Response> => {
         profiles!inner(
           email,
           phone_number,
+          slack_username,
+          slack_channel,
           notification_email,
           notification_preferences,
           full_name

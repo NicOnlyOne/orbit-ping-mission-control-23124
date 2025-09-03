@@ -177,6 +177,8 @@ export type Database = {
           notification_email: boolean | null
           notification_preferences: Json | null
           phone_number: string | null
+          slack_channel: string | null
+          slack_username: string | null
           updated_at: string
           user_id: string
         }
@@ -190,6 +192,8 @@ export type Database = {
           notification_email?: boolean | null
           notification_preferences?: Json | null
           phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
           updated_at?: string
           user_id: string
         }
@@ -203,6 +207,8 @@ export type Database = {
           notification_email?: boolean | null
           notification_preferences?: Json | null
           phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
           updated_at?: string
           user_id?: string
         }

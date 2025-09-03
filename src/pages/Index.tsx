@@ -9,6 +9,7 @@ import { SMSForm } from "@/components/SMSForm";
 import { SMSLogs } from "@/components/SMSLogs";
 import { Navigation } from "@/components/Navigation";
 import { SlackTestButton } from "@/components/SlackTestButton";
+import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";

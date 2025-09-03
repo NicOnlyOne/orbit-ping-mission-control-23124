@@ -37,6 +37,8 @@ const Profile = () => {
     full_name: "",
     email: "",
     phone_number: "",
+    slack_username: "",
+    slack_channel: "",
     notification_email: true,
     notification_preferences: {
       alerts: true,
