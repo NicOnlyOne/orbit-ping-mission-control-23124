@@ -28,8 +28,8 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
