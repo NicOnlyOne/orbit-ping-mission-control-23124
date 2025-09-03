@@ -2,3 +2,6 @@ project_id = "fvbwalvidzomwmcijxww"
 
 [functions.test-url]
 verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = true

@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
+import { SMSForm } from "@/components/SMSForm";
+import { SMSLogs } from "@/components/SMSLogs";
 import { Navigation } from "@/components/Navigation";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
