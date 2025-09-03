@@ -1,22 +1,24 @@
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTheme } from '@/hooks/useTheme';
 
-export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+interface ThemeToggleProps {
+  value: string;
+  onChange: (value: string) => void;
+}
 
+export function ThemeToggle({ value, onChange }: ThemeToggleProps) {
   const cycleTheme = () => {
-    if (theme === 'light') {
-      setTheme('dark');
-    } else if (theme === 'dark') {
-      setTheme('system');
+    if (value === 'light') {
+      onChange('dark');
+    } else if (value === 'dark') {
+      onChange('system');
     } else {
-      setTheme('light');
+      onChange('light');
     }
   };
 
   const getIcon = () => {
-    switch (theme) {
+    switch (value) {
       case 'light':
         return <Sun className="h-4 w-4" />;
       case 'dark':
@@ -29,7 +31,7 @@ export function ThemeToggle() {
   };
 
   const getThemeLabel = () => {
-    switch (theme) {
+    switch (value) {
       case 'light':
         return 'Light';
       case 'dark':

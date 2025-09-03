@@ -400,7 +400,10 @@ const Profile = () => {
                   Choose your preferred color scheme
                 </p>
               </div>
-              <ThemeToggle />
+              <ThemeToggle 
+                value={profile.theme_preference} 
+                onChange={(value) => setProfile(prev => ({ ...prev, theme_preference: value }))} 
+              />
             </div>
           </CardContent>
         </Card>
