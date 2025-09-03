@@ -42,7 +42,8 @@ const Profile = () => {
       alerts: true,
       downtime: true,
       recovery: true,
-      sms: true
+      sms: true,
+      slack: false
     }
   });
   
@@ -90,11 +91,13 @@ const Profile = () => {
             downtime: boolean;
             recovery: boolean;
             sms: boolean;
+            slack: boolean;
           }) || {
             alerts: true,
             downtime: true,
             recovery: true,
-            sms: true
+            sms: true,
+            slack: false
           }
         });
       } else {
@@ -103,7 +106,8 @@ const Profile = () => {
           alerts: true,
           downtime: true,
           recovery: true,
-          sms: true
+          sms: true,
+          slack: false
         };
         
         await supabase
