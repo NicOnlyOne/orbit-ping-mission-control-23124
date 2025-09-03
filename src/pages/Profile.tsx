@@ -33,21 +33,18 @@ const Profile = () => {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<UserProfile>({
     full_name: "",
     email: "",
     phone_number: "",
-    slack_username: "",
-    slack_channel: "",
     notification_email: true,
     notification_preferences: {
       alerts: true,
       downtime: true,
       recovery: true,
-      sms: true,
-      slack: false
+      sms: true
     }
-  } as UserProfile);
+  });
   
   const [passwords, setPasswords] = useState({
     current: "",
@@ -93,13 +90,11 @@ const Profile = () => {
             downtime: boolean;
             recovery: boolean;
             sms: boolean;
-            slack: boolean;
           }) || {
             alerts: true,
             downtime: true,
             recovery: true,
-            sms: true,
-            slack: false
+            sms: true
           }
         });
       } else {
@@ -108,8 +103,7 @@ const Profile = () => {
           alerts: true,
           downtime: true,
           recovery: true,
-          sms: true,
-          slack: false
+          sms: true
         };
         
         await supabase
@@ -521,8 +515,8 @@ const Profile = () => {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-sm">General Alerts</p>
-                    <p className="text-xs text-muted-foreground">Other important notifications</p>
+                    <p className="font-medium text-sm">System Alerts</p>
+                    <p className="text-xs text-muted-foreground">Important system updates</p>
                   </div>
                   <Switch
                     checked={profile.notification_preferences.alerts}
@@ -537,16 +531,13 @@ const Profile = () => {
                 </div>
               </div>
             </div>
-            
-            <Separator className="bg-space-light" />
-            
+
             <Button onClick={updateProfile} disabled={isLoading} className="w-full md:w-auto">
               <Save className="h-4 w-4 mr-2" />
               Save Notification Settings
             </Button>
           </CardContent>
         </Card>
-
       </div>
       </div>
     </div>
