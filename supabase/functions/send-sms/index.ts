@@ -36,9 +36,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Get Twilio credentials from environment
     const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const twilioPhoneNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
     
-    if (!twilioSid || !twilioToken) {
-      console.error("Missing Twilio credentials");
+    if (!twilioSid || !twilioToken || !twilioPhoneNumber) {
+      console.error("Missing Twilio credentials or phone number");
       return new Response(
         JSON.stringify({ error: "SMS service not configured" }),
         { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -101,7 +102,7 @@ const handler = async (req: Request): Promise<Response> => {
           },
           body: new URLSearchParams({
             To: to,
-            From: "+1234567890", // You'll need to configure a Twilio phone number
+            From: twilioPhoneNumber,
             Body: message,
           }),
         }
