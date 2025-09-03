@@ -180,6 +180,10 @@ export type Database = {
           phone_number: string | null
           slack_channel: string | null
           slack_username: string | null
+          subscription_end_date: string | null
+          subscription_plan: string | null
+          subscription_start_date: string | null
+          subscription_status: string | null
           theme_preference: string | null
           updated_at: string
           user_id: string
@@ -197,6 +201,10 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
           theme_preference?: string | null
           updated_at?: string
           user_id: string
@@ -214,6 +222,10 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          subscription_end_date?: string | null
+          subscription_plan?: string | null
+          subscription_start_date?: string | null
+          subscription_status?: string | null
           theme_preference?: string | null
           updated_at?: string
           user_id?: string
@@ -261,7 +273,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_enable_monitor: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
+      get_user_plan: {
+        Args: { user_id_param: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

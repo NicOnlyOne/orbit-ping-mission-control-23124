@@ -1,16 +1,20 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import { LogOut, User, ChevronDown, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { PlanBadge } from "./PlanBadge";
+import { PricingModal } from "./PricingModal";
 
 interface UserProfile {
   full_name: string;
@@ -19,7 +23,9 @@ interface UserProfile {
 
 export function Navigation() {
   const { user, signOut } = useAuth();
+  const { plan } = useSubscription();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [showPricing, setShowPricing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -44,7 +50,8 @@ export function Navigation() {
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
+    <>
+      <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <span className="text-2xl">🚀</span>
@@ -74,6 +81,7 @@ export function Navigation() {
                     <span className="hidden sm:inline font-medium">
                       {profile?.full_name || user.email}
                     </span>
+                    <PlanBadge />
                     <ChevronDown className="h-4 w-4" />
                   </div>
                 </Button>
@@ -85,6 +93,12 @@ export function Navigation() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowPricing(true)} className="flex items-center w-full">
+                  <Crown className="h-4 w-4 mr-2" />
+                  {plan === 'free' ? 'Upgrade Plan' : 'Manage Plan'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()} className="flex items-center w-full">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
@@ -102,5 +116,8 @@ export function Navigation() {
         </div>
       </div>
     </header>
-  );
+    
+    <PricingModal open={showPricing} onOpenChange={setShowPricing} />
+  </>
+);
 }

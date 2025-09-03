@@ -49,7 +49,8 @@ const handler = async (req: Request): Promise<Response> => {
           slack_channel,
           notification_email,
           notification_preferences,
-          full_name
+          full_name,
+          subscription_plan
         )
       `)
       .eq('id', monitorId)
@@ -65,6 +66,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     const profile = monitor.profiles;
     const notifications = profile.notification_preferences || {};
+    const subscriptionPlan = profile.subscription_plan || 'free';
+    
+    // Check plan-based feature availability
+    const planFeatures = {
+      emailAlerts: true, // All plans
+      slackNotifications: subscriptionPlan === 'pro' || subscriptionPlan === 'enterprise',
+      smsNotifications: subscriptionPlan === 'enterprise'
+    };
+    
+    console.log(`User plan: ${subscriptionPlan}, features:`, planFeatures);
     
     // Check if we should send alerts based on status and preferences
     const shouldSendDowntimeAlert = status === 'DOWN' && notifications.downtime;
@@ -86,8 +97,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const results = { email: null, sms: null, slack: null };
 
-    // Send Slack notification
-    if (notifications.slack) {
+    // Send Slack notification (Pro and Enterprise only)
+    if (notifications.slack && planFeatures.slackNotifications) {
       try {
         const slackColor = isDown ? 'danger' : 'good';
         const slackResult = await supabaseClient.functions.invoke('notify-slack', {
@@ -109,8 +120,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Send email notification
-    if (profile.notification_email) {
+    // Send email notification (All plans)
+    if (profile.notification_email && planFeatures.emailAlerts) {
       try {
         const emailResult = await supabaseClient.functions.invoke('send-email-alert', {
           body: {
@@ -133,8 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Send SMS notification
-    if (notifications.sms && profile.phone_number) {
+    // Send SMS notification (Enterprise only)
+    if (notifications.sms && profile.phone_number && planFeatures.smsNotifications) {
       try {
         const smsResult = await supabaseClient.functions.invoke('send-sms', {
           body: {

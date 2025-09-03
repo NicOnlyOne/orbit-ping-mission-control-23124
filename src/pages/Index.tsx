@@ -10,16 +10,20 @@ import { SMSLogs } from "@/components/SMSLogs";
 import { Navigation } from "@/components/Navigation";
 import { SlackTestButton } from "@/components/SlackTestButton";
 import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
+import { PlanLimitWarning } from "@/components/PlanLimitWarning";
+import { PricingModal } from "@/components/PricingModal";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { Plus, RefreshCw } from "lucide-react";
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   const {
     user,
     loading
@@ -34,6 +38,8 @@ const Index = () => {
     updateMonitorInterval,
     toggleMonitorEnabled
   } = useMonitors();
+
+  const { canEnableMonitor, plan } = useSubscription();
 
   // Handle pending mission from anonymous testing
   useEffect(() => {
@@ -167,17 +173,20 @@ const Index = () => {
                   </Label>
                   <Input id="mission-url" placeholder="https://your-website.com" value={newMissionUrl} onChange={e => setNewMissionUrl(e.target.value)} className="bg-space-dark border-space-light mt-2" onKeyPress={e => e.key === 'Enter' && handleDeployMission()} />
                 </div>
-                <Button variant="rocket" className="w-full" disabled={!newMissionUrl.trim() || isDeploying} onClick={handleDeployMission}>
-                  {isDeploying ? <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Deploying Mission...
-                    </> : <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      🚀 Initialize Mission Launch
-                    </>}
-                </Button>
-              </CardContent>
-            </Card>) : (/* Anonymous User - Simple URL Checker */
+                 <Button variant="rocket" className="w-full" disabled={!newMissionUrl.trim() || isDeploying} onClick={handleDeployMission}>
+                   {isDeploying ? <>
+                       <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                       Deploying Mission...
+                     </> : <>
+                       <Plus className="h-4 w-4 mr-2" />
+                       🚀 Initialize Mission Launch
+                     </>}
+                 </Button>
+                 
+                 {/* Plan limit warning */}
+                 <PlanLimitWarning onUpgrade={() => setShowPricing(true)} className="mt-4" />
+               </CardContent>
+             </Card>) : (/* Anonymous User - Simple URL Checker */
         <div className="mb-12">
               <AnonymousUrlChecker onConvertToUser={url => {
             localStorage.setItem('pending-mission-url', url);
@@ -190,6 +199,7 @@ const Index = () => {
                 <h3 className="text-2xl font-bold text-foreground">Active Missions</h3>
                 <div className="text-sm text-muted-foreground">
                   {monitors.length} {monitors.length === 1 ? 'mission' : 'missions'} deployed
+                  {plan === 'free' && ` • ${monitors.filter(m => m.enabled).length}/1 active`}
                 </div>
               </div>
               
@@ -304,6 +314,8 @@ const Index = () => {
           </section>
         )}     
       </div>
+      
+      <PricingModal open={showPricing} onOpenChange={setShowPricing} />
     </div>;
 };
 export default Index;

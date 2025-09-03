@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 
 interface Monitor {
@@ -22,6 +23,7 @@ export function useMonitors() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { canEnableMonitor, refreshSubscription } = useSubscription();
 
   // Fetch monitors
   const fetchMonitors = async () => {
@@ -80,7 +82,8 @@ export function useMonitors() {
           user_id: user.id,
           name: name.trim() || new URL(cleanUrl).hostname,
           url: cleanUrl,
-          status: 'checking'
+          status: 'checking',
+          enabled: canEnableMonitor // Only enable if user can enable monitors
         })
         .select()
         .single();
@@ -93,7 +96,10 @@ export function useMonitors() {
 
       toast.success(`🚀 Mission "${data.name}" deployed successfully!`);
       
-      await fetchMonitors();
+      await Promise.all([
+        fetchMonitors(),
+        refreshSubscription() // Refresh subscription to update canEnableMonitor state
+      ]);
       
       // <<< LOVABLE AI FIX #1: Pass the URL directly to testMonitor
       // This avoids the race condition of trying to fetch it again.
@@ -273,6 +279,12 @@ export function useMonitors() {
       const monitor = monitors.find(m => m.id === monitorId);
       if (!monitor) return;
 
+      // Check if user can enable monitor (for enabling only)
+      if (!monitor.enabled && !canEnableMonitor) {
+        toast.error('⚠️ Free plan limit: Only 1 active monitor allowed. Upgrade to Pro for unlimited monitoring!');
+        return;
+      }
+
       const { error } = await supabase
         .from('monitors')
         .update({ enabled: !monitor.enabled })
@@ -285,7 +297,11 @@ export function useMonitors() {
       }
 
       toast.success(`🛰️ Mission ${!monitor.enabled ? 'activated' : 'paused'} successfully`);
-      fetchMonitors();
+      
+      await Promise.all([
+        fetchMonitors(),
+        refreshSubscription() // Refresh subscription state
+      ]);
     } catch (error) {
       console.error('Unexpected error toggling monitor:', error);
       toast.error('Mission control error updating status');
