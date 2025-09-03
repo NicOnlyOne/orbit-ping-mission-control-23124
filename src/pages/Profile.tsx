@@ -652,6 +652,27 @@ const Profile = () => {
                           disabled={!profile.phone_number}
                         />
                       </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">Slack Notifications</p>
+                          <p className="text-xs text-muted-foreground">Receive alerts in Slack</p>
+                          {(!profile.slack_username || !profile.slack_channel) && (
+                            <p className="text-xs text-orange-500">Please configure Slack integration above</p>
+                          )}
+                        </div>
+                        <Switch
+                          checked={profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
+                          onCheckedChange={(checked) => setProfile(prev => ({ 
+                            ...prev, 
+                            notification_preferences: { 
+                              ...prev.notification_preferences, 
+                              slack: checked 
+                            } 
+                          }))}
+                          disabled={!profile.slack_username || !profile.slack_channel}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
