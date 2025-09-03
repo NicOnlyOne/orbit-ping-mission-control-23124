@@ -43,7 +43,7 @@ const planConfig = {
 export function PlanBadge({ plan: propPlan, className }: PlanBadgeProps) {
   const { plan: contextPlan } = useSubscription();
   const plan = propPlan || contextPlan;
-  const config = planConfig[plan];
+  const config = planConfig[plan] || planConfig.free; // Fallback to free plan config
   const Icon = config.icon;
 
   return (
