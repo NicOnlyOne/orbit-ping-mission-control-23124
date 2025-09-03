@@ -168,6 +168,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           company: string | null
           created_at: string
           email: string | null
@@ -179,10 +180,12 @@ export type Database = {
           phone_number: string | null
           slack_channel: string | null
           slack_username: string | null
+          theme_preference: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -194,10 +197,12 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -209,6 +214,7 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          theme_preference?: string | null
           updated_at?: string
           user_id?: string
         }
