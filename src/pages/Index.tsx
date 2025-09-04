@@ -20,6 +20,7 @@ import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone } from "lucide-react";
+import { AlphaTestBanner } from "@/components/AlphaTestBanner";
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
@@ -135,6 +136,7 @@ const Index = () => {
       </div>;
   }
   return <div className="min-h-screen">
+      <AlphaTestBanner />
       <Navigation />
 
       {/* Space particles background */}
