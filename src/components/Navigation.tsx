@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PlanBadge } from "./PlanBadge";
 import { PricingModal } from "./PricingModal";
+import { Badge } from "@/components/ui/badge";
 
 interface UserProfile {
   full_name: string;
@@ -56,6 +57,7 @@ export function Navigation() {
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <span className="text-2xl">🚀</span>
           <span className="text-xl font-bold text-foreground">OrbitPing</span>
+          <Badge variant="secondary" className="ml-2 uppercase tracking-wide">Alpha Test</Badge>
         </Link>
         
         <div className="flex items-center gap-4">
