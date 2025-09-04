@@ -326,6 +326,67 @@ const Profile = () => {
         </div>
 
         <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+          {/* Plan and Billing */}
+          <Card className="bg-space-medium border-space-light">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-primary" />
+                Plan and billing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Current plan</p>
+                      <p className="text-lg font-semibold capitalize">{plan}</p>
+                    </div>
+                    <PlanBadge />
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground">Next billing date</p>
+                    <p className="text-sm">
+                      {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  {(plan === 'enterprise-100' || plan === 'enterprise-250') && (
+                    <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Smartphone className="h-4 w-4 text-green-500" />
+                          <span className="text-sm font-medium">SMS Credits</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">850 / 1000</span>
+                      </div>
+                      <div className="w-full bg-space-dark rounded-full h-2 mb-2">
+                        <div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Credits reset on next billing cycle. Unused credits roll over.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 lg:w-48">
+                  <Button variant="outline" disabled className="w-full">
+                    Manage payment
+                  </Button>
+                  <Button onClick={() => setShowPricing(true)} className="w-full">
+                    Change plan
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Profile Information */}
           <Card className="bg-space-medium border-space-light">
             <CardHeader>
