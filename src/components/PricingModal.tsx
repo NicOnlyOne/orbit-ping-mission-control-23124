@@ -41,8 +41,7 @@ const planCategories = [
     options: [
       { monitors: 25, price: 12, planId: 'pro-25' as const },
       { monitors: 50, price: 19, planId: 'pro-50' as const }
-    ],
-    popular: true
+    ]
   },
   {
     id: 'enterprise',
@@ -113,31 +112,22 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
           <DialogTitle className="text-2xl text-center">Choose Your Mission Plan</DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           {planCategories.map((category) => {
             const Icon = category.icon;
             const currentOption = getCurrentOption(category);
             const currentPlanActive = isCurrentPlan(currentOption.planId);
-            const isPopular = category.popular;
 
             return (
               <Card 
                 key={category.id} 
-                className={`relative ${isPopular ? 'border-nebula-blue shadow-lg' : ''} ${currentPlanActive ? 'bg-muted/50' : ''}`}
+                className={`relative ${currentPlanActive ? 'bg-muted/50' : ''}`}
               >
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
-                    <span className="bg-gradient-to-r from-nebula-blue to-astro-green text-starlight-white px-4 py-1 rounded-full text-xs font-semibold shadow-lg">
-                      Most Popular
-                    </span>
+                <CardHeader className="text-center py-8 px-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <Icon className="h-10 w-10 text-muted-foreground" />
                   </div>
-                )}
-                
-                <CardHeader className="text-center">
-                  <div className="flex items-center justify-center mb-2">
-                    <Icon className={`h-8 w-8 ${isPopular ? 'text-nebula-blue' : 'text-muted-foreground'}`} />
-                  </div>
-                  <CardTitle className="flex items-center justify-center gap-2">
+                  <CardTitle className="flex items-center justify-center gap-2 text-xl mb-4">
                     {category.name}
                     {currentPlanActive && (
                       <span className="text-xs bg-astro-green text-starlight-white px-2 py-1 rounded">
@@ -145,11 +135,19 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                       </span>
                     )}
                   </CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
+                  <CardDescription className="text-base mb-6 px-2">{category.description}</CardDescription>
                   
+                  {/* Price Display */}
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">
+                      €{currentOption.price}
+                    </span>
+                    <span className="text-muted-foreground text-lg">/month</span>
+                  </div>
+
                   {/* Monitor Selection Dropdown */}
                   {category.options.length > 1 && (
-                    <div className="mt-4">
+                    <div className="mb-4">
                       <Select
                         value={selectedOptions[category.id]?.toString()}
                         onValueChange={(value) => setSelectedOptions(prev => ({
@@ -170,14 +168,6 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                       </Select>
                     </div>
                   )}
-                  
-                  {/* Price Display */}
-                  <div className="mt-4">
-                    <span className="text-3xl font-bold">
-                      €{currentOption.price}
-                    </span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
                 </CardHeader>
                 
                 <CardContent>
@@ -198,7 +188,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                   
                   <Button
                     className="w-full"
-                    variant={currentPlanActive ? "outline" : (isPopular ? "default" : "outline")}
+                    variant={currentPlanActive ? "outline" : "default"}
                     disabled={currentPlanActive}
                     onClick={() => handlePlanChange(currentOption.planId)}
                   >
