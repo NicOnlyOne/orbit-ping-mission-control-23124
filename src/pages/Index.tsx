@@ -447,12 +447,13 @@ const Index = () => {
                       <Link to="/auth">
                         <Button 
                           variant={isPopular ? "default" : "outline"} 
-                          className={`w-full ${
+                          className={`w-full transition-all duration-300 ${
                             isPopular 
-                              ? 'bg-nebula-blue hover:bg-nebula-blue/90 text-starlight-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300' 
+                              ? 'bg-gradient-to-r from-nebula-blue to-primary hover:from-nebula-blue/80 hover:to-primary/80 text-starlight-white font-bold border-2 border-nebula-blue/50 hover:border-nebula-blue hover:shadow-[0_0_20px_hsl(210_100%_50%/0.5)] hover:scale-105 transform' 
                               : ''
                           }`}
                         >
+                          {isPopular && <span className="mr-2">🚀</span>}
                           Get Started{category.id === 'free' ? ' Free' : ''}
                         </Button>
                       </Link>
