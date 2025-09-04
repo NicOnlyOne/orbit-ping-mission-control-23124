@@ -1,95 +1,76 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const plans = [
+const planCategories = [
   {
-    id: 'free' as const,
+    id: 'free',
     name: 'Free',
-    price: '€0',
-    period: 'month',
     icon: Star,
     description: 'Great for small projects or testing your "mission control."',
-    features: [
+    baseFeatures: [
       '5 monitors',
       '5-minute checks',
       'Email alerts',
       'Basic uptime tracking'
+    ],
+    options: [
+      { monitors: 5, price: 0, planId: 'free' as const }
     ]
   },
   {
-    id: 'pro-25' as const,
+    id: 'pro',
     name: 'Pro',
-    price: '€12',
-    period: 'month',
     icon: Rocket,
     description: 'Powerful for small teams who want fast alerts and better tracking.',
-    features: [
-      '25 monitors',
+    baseFeatures: [
       '1-minute checks',
       'Email alerts',
       'Slack notifications'
     ],
+    options: [
+      { monitors: 25, price: 12, planId: 'pro-25' as const },
+      { monitors: 50, price: 19, planId: 'pro-50' as const }
+    ],
     popular: true
   },
   {
-    id: 'pro-50' as const,
-    name: 'Pro+',
-    price: '€19',
-    period: 'month',
-    icon: Rocket,
-    description: 'More monitors for growing teams.',
-    features: [
-      '50 monitors',
-      '1-minute checks',
-      'Email alerts',
-      'Slack notifications'
-    ]
-  },
-  {
-    id: 'enterprise-100' as const,
+    id: 'enterprise',
     name: 'Enterprise',
-    price: '€49',
-    period: 'month',
     icon: Crown,
     description: 'Perfect for critical services where real-time phone alerts matter.',
-    features: [
-      '100 monitors',
+    baseFeatures: [
       '30-second checks',
       'Email alerts',
       'Slack notifications',
       'SMS notifications',
       '100 SMS included/month'
-    ]
-  },
-  {
-    id: 'enterprise-250' as const,
-    name: 'Enterprise+',
-    price: '€99',
-    period: 'month',
-    icon: Crown,
-    description: 'Maximum capacity for large operations.',
-    features: [
-      '250 monitors',
-      '30-second checks',
-      'Email alerts',
-      'Slack notifications',
-      'SMS notifications',
-      '100 SMS included/month'
+    ],
+    options: [
+      { monitors: 100, price: 49, planId: 'enterprise-100' as const },
+      { monitors: 250, price: 99, planId: 'enterprise-250' as const }
     ]
   }
 ];
 
 export function PricingModal({ open, onOpenChange }: PricingModalProps) {
   const { plan: currentPlan, upgradePlan } = useSubscription();
+  
+  // State for dropdown selections
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
+    pro: 25,
+    enterprise: 100
+  });
 
   // Plan hierarchy for determining upgrade vs downgrade
   const planHierarchy = { 
@@ -104,19 +85,26 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
     return planHierarchy[targetPlan as keyof typeof planHierarchy] > planHierarchy[currentPlan];
   };
 
-  const handlePlanChange = async (planId: typeof plans[0]['id']) => {
+  const handlePlanChange = async (planId: string) => {
     if (planId === currentPlan) return;
 
     try {
-      await upgradePlan(planId);
+      await upgradePlan(planId as any);
       const action = isUpgrade(planId) ? 'upgraded' : 'changed';
-      toast.success(`Successfully ${action} to ${planId} plan!`);
+      toast.success(`Successfully ${action} to plan!`);
       onOpenChange(false);
     } catch (error) {
       toast.error('Failed to change plan. Please try again.');
       console.error('Plan change error:', error);
     }
   };
+
+  const getCurrentOption = (category: typeof planCategories[0]) => {
+    if (category.id === 'free') return category.options[0];
+    return category.options.find(opt => opt.monitors === selectedOptions[category.id]) || category.options[0];
+  };
+
+  const isCurrentPlan = (planId: string) => currentPlan === planId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,20 +113,21 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
           <DialogTitle className="text-2xl text-center">Choose Your Mission Plan</DialogTitle>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mt-6">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
-            const isCurrentPlan = currentPlan === plan.id;
-            const isPopular = plan.popular;
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          {planCategories.map((category) => {
+            const Icon = category.icon;
+            const currentOption = getCurrentOption(category);
+            const currentPlanActive = isCurrentPlan(currentOption.planId);
+            const isPopular = category.popular;
 
             return (
               <Card 
-                key={plan.id} 
-                className={`relative ${isPopular ? 'border-nebula-blue shadow-lg scale-105' : ''} ${isCurrentPlan ? 'bg-muted/50' : ''}`}
+                key={category.id} 
+                className={`relative ${isPopular ? 'border-nebula-blue shadow-lg' : ''} ${currentPlanActive ? 'bg-muted/50' : ''}`}
               >
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                    <span className="bg-gradient-to-r from-nebula-blue to-astro-green text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg border border-white/20">
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <span className="bg-gradient-to-r from-nebula-blue to-astro-green text-starlight-white px-4 py-1 rounded-full text-xs font-semibold shadow-lg">
                       Most Popular
                     </span>
                   </div>
@@ -149,23 +138,57 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                     <Icon className={`h-8 w-8 ${isPopular ? 'text-nebula-blue' : 'text-muted-foreground'}`} />
                   </div>
                   <CardTitle className="flex items-center justify-center gap-2">
-                    {plan.name}
-                    {isCurrentPlan && (
-                      <span className="text-xs bg-astro-green text-white px-2 py-1 rounded">
+                    {category.name}
+                    {currentPlanActive && (
+                      <span className="text-xs bg-astro-green text-starlight-white px-2 py-1 rounded">
                         Current
                       </span>
                     )}
                   </CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
+                  <CardDescription>{category.description}</CardDescription>
+                  
+                  {/* Monitor Selection Dropdown */}
+                  {category.options.length > 1 && (
+                    <div className="mt-4">
+                      <Select
+                        value={selectedOptions[category.id]?.toString()}
+                        onValueChange={(value) => setSelectedOptions(prev => ({
+                          ...prev,
+                          [category.id]: parseInt(value)
+                        }))}
+                      >
+                        <SelectTrigger className="w-full bg-background border border-muted">
+                          <SelectValue placeholder="Select monitors" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {category.options.map((option) => (
+                            <SelectItem key={option.monitors} value={option.monitors.toString()}>
+                              {option.monitors} monitors / month
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  
+                  {/* Price Display */}
                   <div className="mt-4">
-                    <span className="text-3xl font-bold">{plan.price}</span>
-                    <span className="text-muted-foreground">/{plan.period}</span>
+                    <span className="text-3xl font-bold">
+                      €{currentOption.price}
+                    </span>
+                    <span className="text-muted-foreground">/month</span>
                   </div>
                 </CardHeader>
                 
                 <CardContent>
                   <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, index) => (
+                    {category.id !== 'free' && (
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                        <span className="text-sm">{currentOption.monitors} monitors</span>
+                      </li>
+                    )}
+                    {category.baseFeatures.map((feature, index) => (
                       <li key={index} className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
                         <span className="text-sm">{feature}</span>
@@ -175,13 +198,13 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
                   
                   <Button
                     className="w-full"
-                    variant={isCurrentPlan ? "outline" : (isPopular ? "default" : "outline")}
-                    disabled={isCurrentPlan}
-                    onClick={() => handlePlanChange(plan.id)}
+                    variant={currentPlanActive ? "outline" : (isPopular ? "default" : "outline")}
+                    disabled={currentPlanActive}
+                    onClick={() => handlePlanChange(currentOption.planId)}
                   >
-                    {isCurrentPlan 
+                    {currentPlanActive 
                       ? 'Current Plan' 
-                      : `${isUpgrade(plan.id) ? 'Upgrade' : 'Change'} to ${plan.name}`
+                      : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`
                     }
                   </Button>
                 </CardContent>
@@ -198,7 +221,7 @@ export function PricingModal({ open, onOpenChange }: PricingModalProps) {
             </div>
             <div className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              <span>Slack (Pro+)</span>
+              <span>Slack (Pro)</span>
             </div>
             <div className="flex items-center gap-2">
               <Smartphone className="h-4 w-4" />
