@@ -54,7 +54,7 @@ export function Navigation() {
       <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <span className="text-2xl">🚀</span>
+          <img src="/lovable-uploads/5c00a29f-7f1c-4241-9435-168f1ab5ee6f.png" alt="OrbitPing" className="w-8 h-8" />
           <span className="text-xl font-bold text-foreground">OrbitPing</span>
         </Link>
         
