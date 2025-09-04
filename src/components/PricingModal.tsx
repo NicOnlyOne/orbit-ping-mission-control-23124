@@ -138,7 +138,7 @@ export function PricingModal({
                         </SelectTrigger>
                         <SelectContent>
                           {category.options.map(option => <SelectItem key={option.monitors} value={option.monitors.toString()}>
-                              {option.monitors} monitors / month
+                              {option.monitors} monitors
                             </SelectItem>)}
                         </SelectContent>
                       </Select>
