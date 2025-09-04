@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
@@ -24,6 +25,12 @@ const Index = () => {
   const [newMissionName, setNewMissionName] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  
+  // State for dropdown selections
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
+    pro: 25,
+    enterprise: 100
+  });
   const {
     user,
     loading
@@ -40,6 +47,55 @@ const Index = () => {
   } = useMonitors();
 
   const { canEnableMonitor, plan } = useSubscription();
+
+  // Plan categories for pricing
+  const planCategories = [{
+    id: 'free',
+    name: 'Free',
+    icon: Star,
+    description: 'Great for small projects or testing your "mission control."',
+    baseFeatures: ['5 monitors', '5-minute checks', 'Email alerts', 'Basic uptime tracking'],
+    options: [{
+      monitors: 5,
+      price: 0,
+      planId: 'free' as const
+    }]
+  }, {
+    id: 'pro',
+    name: 'Pro',
+    icon: Rocket,
+    description: 'Powerful for small teams who want fast alerts and better tracking.',
+    baseFeatures: ['1-minute checks', 'Email alerts', 'Slack notifications'],
+    options: [{
+      monitors: 25,
+      price: 12,
+      planId: 'pro-25' as const
+    }, {
+      monitors: 50,
+      price: 19,
+      planId: 'pro-50' as const
+    }]
+  }, {
+    id: 'enterprise',
+    name: 'Enterprise',
+    icon: Crown,
+    description: 'Perfect for critical services where real-time phone alerts matter.',
+    baseFeatures: ['30-second checks', 'Email alerts', 'Slack notifications', 'SMS notifications', '100 SMS included/month'],
+    options: [{
+      monitors: 100,
+      price: 49,
+      planId: 'enterprise-100' as const
+    }, {
+      monitors: 250,
+      price: 99,
+      planId: 'enterprise-250' as const
+    }]
+  }];
+
+  const getCurrentOption = (category: typeof planCategories[0]) => {
+    if (category.id === 'free') return category.options[0];
+    return category.options.find(opt => opt.monitors === selectedOptions[category.id]) || category.options[0];
+  };
 
   // Handle pending mission from anonymous testing
   useEffect(() => {
@@ -301,153 +357,86 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Free Plan */}
-              <Card className="bg-space-medium border-space-light relative">
-                <CardHeader className="text-center py-8 px-6">
-                  <div className="flex items-center justify-center mb-4">
-                    <Star className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                  <CardTitle className="text-xl mb-4">Free</CardTitle>
-                  <p className="text-base mb-6 px-2 text-muted-foreground">
-                    Great for small projects or testing your "mission control."
-                  </p>
-                  
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">€0</span>
-                    <span className="text-muted-foreground text-lg">/month</span>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">5 monitors</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">5-minute checks</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Email alerts</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Basic uptime tracking</span>
-                    </li>
-                  </ul>
-                  
-                  <Link to="/auth">
-                    <Button variant="outline" className="w-full">
-                      Get Started Free
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              {planCategories.map((category, index) => {
+                const Icon = category.icon;
+                const currentOption = getCurrentOption(category);
+                const isPopular = index === 1; // Pro plan is most popular
 
-              {/* Pro Plan */}
-              <Card className="bg-space-medium border-nebula-blue shadow-lg scale-105 relative">
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
-                    Most Popular
-                  </span>
-                </div>
-                <CardHeader className="text-center py-8 px-6">
-                  <div className="flex items-center justify-center mb-4">
-                    <Rocket className="h-10 w-10 text-nebula-blue" />
-                  </div>
-                  <CardTitle className="text-xl mb-4">Pro</CardTitle>
-                  <p className="text-base mb-6 px-2 text-muted-foreground">
-                    Powerful for small teams who want fast alerts and better tracking.
-                  </p>
-                  
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">€12</span>
-                    <span className="text-muted-foreground text-lg">/month</span>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">25 monitors</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">1-minute checks</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Email alerts</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Slack notifications</span>
-                    </li>
-                  </ul>
-                  
-                  <Link to="/auth">
-                    <Button className="w-full">
-                      Start Pro Mission
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+                return (
+                  <Card key={category.id} className={`relative ${isPopular ? 'bg-space-medium border-nebula-blue shadow-lg scale-105' : 'bg-space-medium border-space-light'}`}>
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
+                          Most Popular
+                        </span>
+                      </div>
+                    )}
+                    
+                    <CardHeader className="text-center py-8 px-6">
+                      <div className="flex items-center justify-center mb-4">
+                        <Icon className={`h-10 w-10 ${isPopular ? 'text-nebula-blue' : 'text-muted-foreground'}`} />
+                      </div>
+                      <CardTitle className="text-xl mb-4">{category.name}</CardTitle>
+                      <CardDescription className="text-base mb-6 px-2 py-[10px]">{category.description}</CardDescription>
+                      
+                      {/* Price Display */}
+                      <div className="mb-6 py-[10px]">
+                        <span className="text-4xl font-bold">
+                          €{currentOption.price}
+                        </span>
+                        <span className="text-muted-foreground text-lg">/month</span>
+                      </div>
 
-              {/* Enterprise Plan */}
-              <Card className="bg-space-medium border-space-light relative">
-                <CardHeader className="text-center py-8 px-6">
-                  <div className="flex items-center justify-center mb-4">
-                    <Crown className="h-10 w-10 text-purple-400" />
-                  </div>
-                  <CardTitle className="text-xl mb-4">Enterprise</CardTitle>
-                  <p className="text-base mb-6 px-2 text-muted-foreground">
-                    Perfect for critical services where real-time phone alerts matter.
-                  </p>
-                  
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">€49</span>
-                    <span className="text-muted-foreground text-lg">/month</span>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">100 monitors</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">30-second checks</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Email alerts</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">Slack notifications</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">SMS notifications</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                      <span className="text-sm">100 SMS included/month</span>
-                    </li>
-                  </ul>
-                  
-                  <Link to="/auth">
-                    <Button variant="outline" className="w-full border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white">
-                      Launch Enterprise
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+                      {/* Monitor Selection Dropdown */}
+                      {category.options.length > 1 && (
+                        <div className="mb-4">
+                          <Select
+                            value={selectedOptions[category.id]?.toString()}
+                            onValueChange={(value) => setSelectedOptions(prev => ({
+                              ...prev,
+                              [category.id]: parseInt(value)
+                            }))}
+                          >
+                            <SelectTrigger className="w-full bg-background border border-muted">
+                              <SelectValue placeholder="Select monitors" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {category.options.map(option => (
+                                <SelectItem key={option.monitors} value={option.monitors.toString()}>
+                                  {option.monitors} monitors
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </CardHeader>
+                    
+                    <CardContent>
+                      <ul className="space-y-3 mb-6">
+                        {category.id !== 'free' && (
+                          <li className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                            <span className="text-sm">{currentOption.monitors} monitors</span>
+                          </li>
+                        )}
+                        {category.baseFeatures.map((feature, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                            <span className="text-sm">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      <Link to="/auth">
+                        <Button variant={isPopular ? "default" : "outline"} className="w-full">
+                          Get Started{category.id === 'free' ? ' Free' : ''}
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             <div className="mt-8 p-4 bg-space-medium rounded-lg">
