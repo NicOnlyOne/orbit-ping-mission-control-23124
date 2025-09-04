@@ -106,7 +106,7 @@ export function PricingModal({
           const Icon = category.icon;
           const currentOption = getCurrentOption(category);
           const currentPlanActive = isCurrentPlan(currentOption.planId);
-          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50' : ''}`}>
+          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50 border-2 border-astro-green' : ''}`}>
                 <CardHeader className="text-center py-8 px-6">
                   <div className="flex items-center justify-center mb-4">
                     <Icon className="h-10 w-10 text-muted-foreground" />
