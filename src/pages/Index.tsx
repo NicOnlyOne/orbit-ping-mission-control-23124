@@ -386,7 +386,7 @@ const Index = () => {
                       </div>
                       <CardTitle className={`text-xl mb-4 ${
                         isPopular 
-                          ? 'text-transparent bg-gradient-to-r from-nebula-blue to-primary bg-clip-text font-bold' 
+                          ? 'text-nebula-blue font-bold' 
                           : ''
                       }`}>{category.name}</CardTitle>
                       <CardDescription className="text-base mb-6 px-2 py-[10px]">{category.description}</CardDescription>
@@ -395,7 +395,7 @@ const Index = () => {
                       <div className="mb-6 py-[10px]">
                         <span className={`text-4xl font-bold ${
                           isPopular 
-                            ? 'text-transparent bg-gradient-to-r from-nebula-blue to-primary bg-clip-text' 
+                            ? 'text-nebula-blue' 
                             : ''
                         }`}>
                           €{currentOption.price}
@@ -449,7 +449,7 @@ const Index = () => {
                           variant={isPopular ? "default" : "outline"} 
                           className={`w-full ${
                             isPopular 
-                              ? 'bg-gradient-to-r from-nebula-blue to-primary hover:from-nebula-blue/90 hover:to-primary/90 shadow-lg hover:shadow-xl transition-all duration-300' 
+                              ? 'bg-nebula-blue hover:bg-nebula-blue/90 text-starlight-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300' 
                               : ''
                           }`}
                         >
