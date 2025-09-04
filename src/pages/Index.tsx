@@ -363,25 +363,41 @@ const Index = () => {
                 const isPopular = index === 1; // Pro plan is most popular
 
                 return (
-                  <Card key={category.id} className={`relative ${isPopular ? 'bg-space-medium border-nebula-blue shadow-lg scale-105' : 'bg-space-medium border-space-light'}`}>
+                  <Card key={category.id} className={`relative transition-all duration-300 ${
+                    isPopular 
+                      ? 'bg-gradient-to-br from-space-medium via-space-dark to-space-medium border-2 border-nebula-blue shadow-[0_0_40px_hsl(210_100%_50%/0.3)] scale-105 hover:scale-110 hover:shadow-[0_0_60px_hsl(210_100%_50%/0.4)]' 
+                      : 'bg-space-medium border-space-light hover:border-space-medium hover:shadow-lg'
+                  }`}>
                     {isPopular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
-                          Most Popular
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                        <span className="bg-gradient-to-r from-nebula-blue to-primary text-starlight-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
+                          ⭐ Most Popular
                         </span>
                       </div>
                     )}
                     
                     <CardHeader className="text-center py-8 px-6">
                       <div className="flex items-center justify-center mb-4">
-                        <Icon className={`h-10 w-10 ${isPopular ? 'text-nebula-blue' : 'text-muted-foreground'}`} />
+                        <Icon className={`h-12 w-12 ${
+                          isPopular 
+                            ? 'text-nebula-blue drop-shadow-[0_0_8px_hsl(210_100%_50%/0.6)]' 
+                            : 'text-muted-foreground'
+                        }`} />
                       </div>
-                      <CardTitle className="text-xl mb-4">{category.name}</CardTitle>
+                      <CardTitle className={`text-xl mb-4 ${
+                        isPopular 
+                          ? 'text-transparent bg-gradient-to-r from-nebula-blue to-primary bg-clip-text font-bold' 
+                          : ''
+                      }`}>{category.name}</CardTitle>
                       <CardDescription className="text-base mb-6 px-2 py-[10px]">{category.description}</CardDescription>
                       
                       {/* Price Display */}
                       <div className="mb-6 py-[10px]">
-                        <span className="text-4xl font-bold">
+                        <span className={`text-4xl font-bold ${
+                          isPopular 
+                            ? 'text-transparent bg-gradient-to-r from-nebula-blue to-primary bg-clip-text' 
+                            : ''
+                        }`}>
                           €{currentOption.price}
                         </span>
                         <span className="text-muted-foreground text-lg">/month</span>
@@ -429,7 +445,14 @@ const Index = () => {
                       </ul>
                       
                       <Link to="/auth">
-                        <Button variant={isPopular ? "default" : "outline"} className="w-full">
+                        <Button 
+                          variant={isPopular ? "default" : "outline"} 
+                          className={`w-full ${
+                            isPopular 
+                              ? 'bg-gradient-to-r from-nebula-blue to-primary hover:from-nebula-blue/90 hover:to-primary/90 shadow-lg hover:shadow-xl transition-all duration-300' 
+                              : ''
+                          }`}
+                        >
                           Get Started{category.id === 'free' ? ' Free' : ''}
                         </Button>
                       </Link>
