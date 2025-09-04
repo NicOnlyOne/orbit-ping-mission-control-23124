@@ -337,25 +337,47 @@ const Profile = () => {
             <CardContent className="space-y-6">
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Current plan</p>
-                      <p className="text-lg font-semibold capitalize">{plan}</p>
+                  {/* Current Plan Status */}
+                  <div className="p-4 bg-gradient-to-r from-primary/10 to-blue-500/10 border border-primary/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">You're on {plan.charAt(0).toUpperCase() + plan.slice(1).replace('-', ' ')} Plan</span>
+                      </div>
+                      <PlanBadge />
                     </div>
-                    <PlanBadge />
                   </div>
                   
-                  <div>
-                    <p className="text-sm text-muted-foreground">Next billing date</p>
-                    <p className="text-sm">
-                      {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </p>
+                  {/* Subscription Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Subscription started</p>
+                      <p className="text-sm font-medium">
+                        {new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {plan === 'free' ? 'Plan type' : 'Renews'}
+                      </p>
+                      <p className="text-sm font-medium">
+                        {plan === 'free' 
+                          ? 'Free forever'
+                          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })
+                        }
+                      </p>
+                    </div>
                   </div>
 
+                  {/* SMS Credits for Enterprise Plans */}
                   {(plan === 'enterprise-100' || plan === 'enterprise-250') && (
                     <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
@@ -375,6 +397,7 @@ const Profile = () => {
                   )}
                 </div>
 
+                {/* Manage Section - Always Visible */}
                 <div className="flex flex-col gap-3 lg:w-48">
                   <Button variant="outline" disabled className="w-full">
                     Manage payment
@@ -849,98 +872,6 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Plan and Billing Section */}
-          <Card className="bg-space-medium border-space-light">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-primary" />
-                Plan and billing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Current Plan Info */}
-              <div className="p-6 bg-gradient-to-r from-nebula-blue/10 to-primary/10 border border-nebula-blue/20 rounded-lg">
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-nebula-blue/20 rounded-lg">
-                      <Crown className="h-6 w-6 text-nebula-blue" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        You're on {plan === 'free' ? 'Free' : 
-                                  plan === 'pro-25' ? 'Pro' : 
-                                  plan === 'pro-50' ? 'Pro+' : 
-                                  plan === 'enterprise-100' ? 'Enterprise' : 
-                                  plan === 'enterprise-250' ? 'Enterprise+' : 'Free'} Plan
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {plan === 'free' 
-                          ? 'Basic monitoring for small projects' 
-                          : `Renews ${new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            })}`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    {plan !== 'free' && (
-                      <Button variant="outline" size="sm" className="bg-space-dark border-space-light hover:bg-space-light">
-                        Manage
-                      </Button>
-                    )}
-                    <Button 
-                      onClick={() => setShowPricing(true)}
-                      size="sm"
-                      className="bg-nebula-blue hover:bg-nebula-blue/90 text-starlight-white"
-                    >
-                      {plan === 'free' ? 'Upgrade Plan' : 'Change Plan'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* SMS Credits for Enterprise Plans */}
-              {(plan === 'enterprise-100' || plan === 'enterprise-250') && (
-                <div className="p-4 bg-gradient-to-r from-astro-green/10 to-nebula-blue/10 border border-astro-green/20 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium flex items-center gap-2">
-                      <Smartphone className="h-4 w-4 text-astro-green" />
-                      SMS Credits remaining
-                    </h4>
-                    <span className="text-sm font-semibold text-astro-green">
-                      {Math.floor(Math.random() * 50) + 50} of {plan === 'enterprise-100' ? '100' : '250'}
-                    </span>
-                  </div>
-                  
-                  <div className="w-full bg-space-dark rounded-full h-2 mb-2">
-                    <div 
-                      className="bg-astro-green h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${Math.floor(Math.random() * 40) + 40}%` }}
-                    ></div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>✓ Up to {plan === 'enterprise-100' ? '100' : '250'} SMS credits rollover</span>
-                    <span className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-astro-green rounded-full animate-pulse"></div>
-                      Using monthly credits
-                    </span>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {plan === 'enterprise-100' ? '100' : '250'} SMS credits reset on {new Date(Date.now() + Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })} at 4:05 PM
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
       
