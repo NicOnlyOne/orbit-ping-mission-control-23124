@@ -147,10 +147,6 @@ export function PricingModal({
                 
                 <CardContent>
                   <ul className="space-y-3 mb-6">
-                    {category.id !== 'free' && <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                        <span className="text-sm">{currentOption.monitors} monitors</span>
-                      </li>}
                     {category.baseFeatures.map((feature, index) => <li key={index} className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
                         <span className="text-sm">{feature}</span>
