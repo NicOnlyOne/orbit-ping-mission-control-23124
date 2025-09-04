@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw, Check, Star, Rocket, Crown } from "lucide-react";
+import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone } from "lucide-react";
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
@@ -300,15 +300,171 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="flex justify-center">
-              <Button 
-                onClick={() => setShowPricing(true)}
-                variant="rocket" 
-                size="lg" 
-                className="text-lg px-8 py-6"
-              >
-                View Pricing Plans
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Free Plan */}
+              <Card className="bg-space-medium border-space-light relative">
+                <CardHeader className="text-center py-8 px-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <Star className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <CardTitle className="text-xl mb-4">Free</CardTitle>
+                  <p className="text-base mb-6 px-2 text-muted-foreground">
+                    Great for small projects or testing your "mission control."
+                  </p>
+                  
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">€0</span>
+                    <span className="text-muted-foreground text-lg">/month</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">5 monitors</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">5-minute checks</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Email alerts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Basic uptime tracking</span>
+                    </li>
+                  </ul>
+                  
+                  <Link to="/auth">
+                    <Button variant="outline" className="w-full">
+                      Get Started Free
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Pro Plan */}
+              <Card className="bg-space-medium border-nebula-blue shadow-lg scale-105 relative">
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-nebula-blue text-white px-3 py-1 rounded-full text-xs font-medium">
+                    Most Popular
+                  </span>
+                </div>
+                <CardHeader className="text-center py-8 px-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <Rocket className="h-10 w-10 text-nebula-blue" />
+                  </div>
+                  <CardTitle className="text-xl mb-4">Pro</CardTitle>
+                  <p className="text-base mb-6 px-2 text-muted-foreground">
+                    Powerful for small teams who want fast alerts and better tracking.
+                  </p>
+                  
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">€12</span>
+                    <span className="text-muted-foreground text-lg">/month</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">25 monitors</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">1-minute checks</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Email alerts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Slack notifications</span>
+                    </li>
+                  </ul>
+                  
+                  <Link to="/auth">
+                    <Button className="w-full">
+                      Start Pro Mission
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+
+              {/* Enterprise Plan */}
+              <Card className="bg-space-medium border-space-light relative">
+                <CardHeader className="text-center py-8 px-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <Crown className="h-10 w-10 text-purple-400" />
+                  </div>
+                  <CardTitle className="text-xl mb-4">Enterprise</CardTitle>
+                  <p className="text-base mb-6 px-2 text-muted-foreground">
+                    Perfect for critical services where real-time phone alerts matter.
+                  </p>
+                  
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold">€49</span>
+                    <span className="text-muted-foreground text-lg">/month</span>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">100 monitors</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">30-second checks</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Email alerts</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">Slack notifications</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">SMS notifications</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
+                      <span className="text-sm">100 SMS included/month</span>
+                    </li>
+                  </ul>
+                  
+                  <Link to="/auth">
+                    <Button variant="outline" className="w-full border-purple-400 text-purple-400 hover:bg-purple-400 hover:text-white">
+                      Launch Enterprise
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mt-8 p-4 bg-space-medium rounded-lg">
+              <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>Email alerts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Slack (Pro)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  <span>SMS (Enterprise)</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
