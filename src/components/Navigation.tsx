@@ -96,7 +96,7 @@ export function Navigation() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowPricing(true)} className="flex items-center w-full">
                   <Crown className="h-4 w-4 mr-2" />
-                  {plan === 'free' ? 'Upgrade Plan' : 'Manage Plan'}
+                  Plan and billing
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()} className="flex items-center w-full">
