@@ -19,7 +19,7 @@ export function PlanLimitWarning({ onUpgrade, className }: PlanLimitWarningProps
   return (
     <Alert className={`border-rocket-red/20 bg-rocket-red/5 ${className}`}>
       <AlertTriangle className="h-4 w-4 text-rocket-red" />
-      <AlertDescription className="flex items-center justify-between">
+      <AlertDescription className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm">
             Free plan limit reached: {enabledMonitorCount}/{maxMonitors} active monitors
