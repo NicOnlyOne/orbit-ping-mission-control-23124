@@ -175,6 +175,19 @@ All colors MUST be HSL.
     50% { opacity: 1; transform: scale(1.2); }
     100% { opacity: 0.3; transform: scale(0.8); }
   }
+  
+  @keyframes starfield-slow {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.2; }
+  }
+  
+  @keyframes starfield-medium {
+    0% { opacity: 0.1; }
+    33% { opacity: 0.4; }
+    66% { opacity: 0.15; }
+    100% { opacity: 0.1; }
+  }
 
   /* Performance optimizations to prevent forced reflows */
   .animate-orbit {
@@ -197,7 +210,7 @@ All colors MUST be HSL.
     contain: layout style paint;
   }
 
-  /* Space Particles Background */
+  /* Enhanced Space Particles Background */
   .space-particles {
     position: fixed;
     top: 0;
@@ -217,15 +230,34 @@ All colors MUST be HSL.
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
-                      radial-gradient(2px 2px at 40px 70px, rgba(210, 180, 255, 0.8), transparent),
-                      radial-gradient(1px 1px at 90px 40px, rgba(255, 180, 210, 0.6), transparent),
-                      radial-gradient(1px 1px at 130px 80px, rgba(180, 255, 210, 0.4), transparent),
-                      radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+    background-image: 
+      radial-gradient(1px 1px at 25px 35px, rgba(255, 255, 255, 0.4), transparent),
+      radial-gradient(1px 1px at 85px 15px, rgba(255, 255, 255, 0.3), transparent),
+      radial-gradient(1px 1px at 150px 95px, rgba(255, 255, 255, 0.2), transparent),
+      radial-gradient(1px 1px at 200px 45px, rgba(255, 255, 255, 0.35), transparent);
     background-repeat: repeat;
-    background-size: 200px 100px;
-    animation: starfield 3s ease-in-out infinite alternate;
-    will-change: opacity, transform;
+    background-size: 250px 150px;
+    animation: starfield-slow 8s ease-in-out infinite alternate;
+    will-change: opacity;
+    contain: layout style paint;
+  }
+  
+  .space-particles::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+      radial-gradient(1px 1px at 60px 70px, rgba(18, 217, 255, 0.15), transparent),
+      radial-gradient(1px 1px at 120px 20px, rgba(255, 107, 18, 0.12), transparent),
+      radial-gradient(1px 1px at 180px 110px, rgba(46, 204, 113, 0.1), transparent),
+      radial-gradient(1px 1px at 45px 130px, rgba(255, 255, 255, 0.25), transparent);
+    background-repeat: repeat;
+    background-size: 300px 200px;
+    animation: starfield-medium 5s ease-in-out infinite alternate-reverse;
+    will-change: opacity;
     contain: layout style paint;
   }
 }
