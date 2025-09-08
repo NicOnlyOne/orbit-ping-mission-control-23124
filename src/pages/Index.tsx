@@ -151,6 +151,9 @@ const Index = () => {
       }} />
         <div className="absolute inset-0 bg-gradient-to-br from-space-deep/80 via-space-dark/60 to-space-medium/40" />
         
+        {/* Fade to transparent at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent" />
+        
         <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
           <div className="animate-float">
             <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent my-0 py-[20px] md:text-8xl">
