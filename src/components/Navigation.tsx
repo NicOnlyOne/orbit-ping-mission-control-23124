@@ -95,12 +95,14 @@ export function Navigation() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/analytics" className="flex items-center w-full">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Analytics
-                  </Link>
-                </DropdownMenuItem>
+                {user?.email === "nicolas@bluedaysolutions.com" && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/analytics" className="flex items-center w-full">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analytics
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowPricing(true)} className="flex items-center w-full">
                   <Crown className="h-4 w-4 mr-2" />

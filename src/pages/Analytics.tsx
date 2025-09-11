@@ -163,6 +163,19 @@ const Analytics = () => {
     );
   }
 
+  // Check if user is admin
+  if (user.email !== "nicolas@bluedaysolutions.com") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">👨‍🚀</div>
+          <p className="text-xl text-muted-foreground mb-2">Admin Access Required</p>
+          <p className="text-sm text-muted-foreground">This dashboard is restricted to mission control admins only</p>
+        </div>
+      </div>
+    );
+  }
+
   const chartConfig = {
     signups: {
       label: "User Signups",
