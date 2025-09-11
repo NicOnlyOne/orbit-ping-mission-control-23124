@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { LogOut, User, ChevronDown, Crown } from "lucide-react";
+import { LogOut, User, ChevronDown, Crown, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -93,6 +93,12 @@ export function Navigation() {
                   <Link to="/profile" className="flex items-center w-full">
                     <User className="h-4 w-4 mr-2" />
                     Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/analytics" className="flex items-center w-full">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Analytics
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
