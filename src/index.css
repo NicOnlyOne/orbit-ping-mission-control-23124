@@ -71,6 +71,13 @@ All colors MUST be HSL.
     --status-warning: 45 100% 50%;
     --status-checking: 210 100% 55%;
     
+    /* Brand colors from design system */
+    --nebula-blue: 210 100% 55%;
+    --starlight-white: 210 40% 98%;
+    --astro-green: 142 100% 45%;
+    --meteor-gray: 220 15% 45%;
+    --rocket-red: 0 84% 55%;
+    
     /* Cosmic gradients */
     --gradient-cosmic: linear-gradient(135deg, hsl(220 25% 5%), hsl(220 15% 8%), hsl(210 100% 10%));
     --gradient-rocket: linear-gradient(135deg, hsl(18 90% 55%), hsl(25 100% 60%));
