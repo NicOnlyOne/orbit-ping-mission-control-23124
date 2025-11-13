@@ -29,7 +29,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -37,22 +36,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Processing alert for monitor ${monitorId}: ${status}`);
 
-    // Get monitor and user details
+    // Get monitor details
     const { data: monitor, error: monitorError } = await supabaseClient
       .from('monitors')
-      .select(`
-        *,
-        profiles!inner(
-          email,
-          phone_number,
-          slack_username,
-          slack_channel,
-          notification_email,
-          notification_preferences,
-          full_name,
-          subscription_plan
-        )
-      `)
+      .select('*')
       .eq('id', monitorId)
       .single();
 
@@ -64,125 +51,82 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const profile = monitor.profiles;
-    const notifications = profile.notification_preferences || {};
-    const subscriptionPlan = profile.subscription_plan || 'free';
-    
-    // Check plan-based feature availability
-    const planFeatures = {
-      emailAlerts: true, // All plans
-      slackNotifications: subscriptionPlan === 'pro' || subscriptionPlan === 'enterprise',
-      smsNotifications: subscriptionPlan === 'enterprise'
-    };
-    
-    console.log(`User plan: ${subscriptionPlan}, features:`, planFeatures);
-    
-    // Check if we should send alerts based on status and preferences
-    const shouldSendDowntimeAlert = status === 'DOWN' && notifications.downtime;
-    const shouldSendRecoveryAlert = status === 'UP' && notifications.recovery;
-    
-    if (!shouldSendDowntimeAlert && !shouldSendRecoveryAlert) {
-      console.log("Alert not sent - user preferences disabled for this alert type");
+    // Get user email
+    const { data: userData } = await supabaseClient.auth.admin.getUserById(monitor.user_id);
+    const userEmail = userData?.user?.email;
+
+    if (!userEmail) {
+      console.error("User email not found");
       return new Response(
-        JSON.stringify({ message: "Alert skipped due to user preferences" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "User email not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Format alert message
+    // Send email alert
     const isDown = status === 'DOWN';
-    const alertMessage = isDown 
-      ? `🚨 ALERT: ${monitor.name} is DOWN!\n\nURL: ${url}\nTime: ${new Date().toLocaleString()}\n${errorMessage ? `Error: ${errorMessage}` : ''}\n\nCheck your dashboard for more details.`
-      : `✅ RECOVERY: ${monitor.name} is back ONLINE!\n\nURL: ${url}\nTime: ${new Date().toLocaleString()}\n${responseTime ? `Response time: ${responseTime}ms` : ''}\n\nYour site is now operational.`;
+    const subject = isDown 
+      ? `🚨 Alert: ${monitor.name} is DOWN`
+      : `✅ Recovery: ${monitor.name} is back ONLINE`;
 
-    const results = { email: null, sms: null, slack: null };
+    const htmlBody = isDown 
+      ? `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ff5c5c;">🚨 Mission Alert: Site Down</h2>
+          <p><strong>${monitor.name}</strong> is currently unreachable.</p>
+          <p><strong>URL:</strong> ${url}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          ${errorMessage ? `<p><strong>Error:</strong> ${errorMessage}</p>` : ''}
+          <p>We'll continue monitoring and notify you when the site recovers.</p>
+        </div>
+      `
+      : `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2ecc71;">✅ Mission Control: Site Recovered</h2>
+          <p><strong>${monitor.name}</strong> is back online!</p>
+          <p><strong>URL:</strong> ${url}</p>
+          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+          ${responseTime ? `<p><strong>Response time:</strong> ${responseTime}ms</p>` : ''}
+          <p>Your site is now operational. All systems go! 🚀</p>
+        </div>
+      `;
 
-    // Send Slack notification (Pro and Enterprise only)
-    if (notifications.slack && planFeatures.slackNotifications) {
-      try {
-        const slackColor = isDown ? 'danger' : 'good';
-        const slackResult = await supabaseClient.functions.invoke('notify-slack', {
-          body: {
-            message: alertMessage,
-            title: isDown ? `🚨 Monitor Alert: ${monitor.name} is DOWN` : `✅ Monitor Recovery: ${monitor.name} is ONLINE`,
-            color: slackColor,
-            url: url,
-            monitorName: monitor.name,
-            timestamp: new Date().toISOString()
-          }
-        });
-        
-        results.slack = slackResult;
-        console.log("Slack alert sent:", slackResult);
-      } catch (slackError) {
-        console.error("Slack alert failed:", slackError);
-        results.slack = { error: slackError };
-      }
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    // Send email notification (All plans)
-    if (profile.notification_email && planFeatures.emailAlerts) {
-      try {
-        const emailResult = await supabaseClient.functions.invoke('send-email-alert', {
-          body: {
-            to: profile.email,
-            subject: isDown ? `🚨 ${monitor.name} is DOWN` : `✅ ${monitor.name} is ONLINE`,
-            message: alertMessage,
-            monitorName: monitor.name,
-            url: url,
-            status: status,
-            errorMessage: errorMessage,
-            responseTime: responseTime
-          }
-        });
-        
-        results.email = emailResult;
-        console.log("Email alert sent:", emailResult);
-      } catch (emailError) {
-        console.error("Email alert failed:", emailError);
-        results.email = { error: emailError };
-      }
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'MissionControl <alerts@updates.lovable.app>',
+        to: [userEmail],
+        subject,
+        html: htmlBody
+      })
+    });
+
+    if (!emailResponse.ok) {
+      const error = await emailResponse.text();
+      console.error('Failed to send email:', error);
+      return new Response(
+        JSON.stringify({ error: "Failed to send email alert" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    // Send SMS notification (Enterprise only)
-    if (notifications.sms && profile.phone_number && planFeatures.smsNotifications) {
-      try {
-        const smsResult = await supabaseClient.functions.invoke('send-sms', {
-          body: {
-            to: profile.phone_number,
-            message: alertMessage
-          }
-        });
-        
-        results.sms = smsResult;
-        console.log("SMS alert sent:", smsResult);
-      } catch (smsError) {
-        console.error("SMS alert failed:", smsError);
-        results.sms = { error: smsError };
-      }
-    }
-
-    // Log the alert event
-    try {
-      await supabaseClient
-        .from('alert_events')
-        .insert({
-          monitor_id: monitorId,
-          user_id: monitor.user_id,
-          status: isDown ? 'DOWN' : 'UP',
-          channel: 'multi',
-          error: errorMessage || null
-        });
-    } catch (logError) {
-      console.error("Failed to log alert event:", logError);
-    }
-
+    console.log("Alert sent successfully");
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Alert processed",
-        results: results
-      }),
+      JSON.stringify({ success: true, message: "Alert sent successfully" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 
