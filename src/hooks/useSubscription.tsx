@@ -53,7 +53,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_plan')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .maybeSingle();
 
       const userPlan = (profile?.subscription_plan as SubscriptionPlan) || 'free';
@@ -90,7 +90,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           subscription_status: 'active',
           subscription_start_date: new Date().toISOString()
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       if (error) throw error;
       

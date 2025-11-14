@@ -39,7 +39,7 @@ export function Navigation() {
       const { data } = await supabase
         .from('profiles')
         .select('full_name, avatar_url')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
         .maybeSingle();
       
       if (data) {

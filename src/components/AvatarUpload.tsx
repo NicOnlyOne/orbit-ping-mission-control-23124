@@ -51,9 +51,9 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
       const { error: updateError } = await supabase
         .from('profiles')
         .upsert({ 
-          user_id: userId, 
+          id: userId, 
           avatar_url: avatarUrl 
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'id' });
 
       if (updateError) {
         throw updateError;
@@ -83,9 +83,9 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
       const { error } = await supabase
         .from('profiles')
         .upsert({ 
-          user_id: userId, 
+          id: userId, 
           avatar_url: null 
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'id' });
 
       if (error) {
         throw error;
