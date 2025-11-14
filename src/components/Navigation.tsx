@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LogOut, User, ChevronDown, Crown, BarChart3 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { 
   DropdownMenu,
   DropdownMenuContent,

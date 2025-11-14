@@ -168,30 +168,81 @@ export type Database = {
       }
       profiles: {
         Row: {
-          company: string | null
+          avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          notification_email: boolean | null
+          notification_preferences: Json | null
+          phone_number: string | null
+          slack_channel: string | null
+          slack_username: string | null
+          subscription_plan: string | null
+          theme_preference: string | null
           updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          notification_email?: boolean | null
+          notification_preferences?: Json | null
+          phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
+          subscription_plan?: string | null
+          theme_preference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notification_email?: boolean | null
+          notification_preferences?: Json | null
+          phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
+          subscription_plan?: string | null
+          theme_preference?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sms_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          message: string
+          status: string
+          to_number: string
+          twilio_sid: string | null
           user_id: string
         }
         Insert: {
-          company?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
+          created_at?: string | null
+          error_message?: string | null
           id?: string
-          updated_at?: string
+          message: string
+          status: string
+          to_number: string
+          twilio_sid?: string | null
           user_id: string
         }
         Update: {
-          company?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
+          created_at?: string | null
+          error_message?: string | null
           id?: string
-          updated_at?: string
+          message?: string
+          status?: string
+          to_number?: string
+          twilio_sid?: string | null
           user_id?: string
         }
         Relationships: []

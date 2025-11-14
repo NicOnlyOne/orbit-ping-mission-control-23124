@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { Activity, Users, DollarSign, TrendingUp, Calendar, BarChart3 } from "lucide-react";
 
