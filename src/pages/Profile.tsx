@@ -89,7 +89,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('id', user?.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -139,7 +139,7 @@ const Profile = () => {
         await supabase
           .from('profiles')
           .insert({
-            user_id: user?.id,
+            id: user?.id,
             email: user?.email,
             full_name: "",
             phone_number: "",
@@ -182,7 +182,7 @@ const Profile = () => {
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          user_id: user.id,
+          id: user.id,
           full_name: profile.full_name,
           email: profile.email,
           phone_number: profile.phone_number,
@@ -192,7 +192,7 @@ const Profile = () => {
           slack_channel: profile.slack_channel,
           notification_email: profile.notification_email,
           notification_preferences: profile.notification_preferences
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'id' });
 
       if (error) throw error;
 
