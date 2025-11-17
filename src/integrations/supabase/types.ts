@@ -14,7 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      monitor_logs: {
+        Row: {
+          checked_at: string | null
+          error_message: string | null
+          id: string
+          monitor_id: string
+          response_time: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string | null
+          error_message?: string | null
+          id?: string
+          monitor_id: string
+          response_time?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string | null
+          error_message?: string | null
+          id?: string
+          monitor_id?: string
+          response_time?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monitor_logs_monitor_id_fkey"
+            columns: ["monitor_id"]
+            isOneToOne: false
+            referencedRelation: "monitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monitors: {
+        Row: {
+          created_at: string | null
+          enabled: boolean | null
+          error_message: string | null
+          id: string
+          last_checked: string | null
+          monitoring_interval: number | null
+          name: string
+          response_time: number | null
+          status: string
+          updated_at: string | null
+          uptime_percentage: number | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean | null
+          error_message?: string | null
+          id?: string
+          last_checked?: string | null
+          monitoring_interval?: number | null
+          name: string
+          response_time?: number | null
+          status?: string
+          updated_at?: string | null
+          uptime_percentage?: number | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean | null
+          error_message?: string | null
+          id?: string
+          last_checked?: string | null
+          monitoring_interval?: number | null
+          name?: string
+          response_time?: number | null
+          status?: string
+          updated_at?: string | null
+          uptime_percentage?: number | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          notification_email: boolean | null
+          notification_preferences: Json | null
+          phone_number: string | null
+          slack_channel: string | null
+          slack_username: string | null
+          subscription_plan: string | null
+          theme_preference: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          notification_email?: boolean | null
+          notification_preferences?: Json | null
+          phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
+          subscription_plan?: string | null
+          theme_preference?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          notification_email?: boolean | null
+          notification_preferences?: Json | null
+          phone_number?: string | null
+          slack_channel?: string | null
+          slack_username?: string | null
+          subscription_plan?: string | null
+          theme_preference?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sms_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          message: string
+          status: string
+          to_number: string
+          twilio_sid: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message: string
+          status: string
+          to_number: string
+          twilio_sid?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          message?: string
+          status?: string
+          to_number?: string
+          twilio_sid?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
