@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './useAuth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export type SubscriptionPlan = 'free' | 'pro-25' | 'pro-50' | 'enterprise-100' | 'enterprise-250';
 
