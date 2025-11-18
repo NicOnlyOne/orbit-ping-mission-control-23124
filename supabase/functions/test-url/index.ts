@@ -5,6 +5,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function isValidMonitorUrl(url: string): { valid: boolean; error?: string } {
+  try {
+    const parsed = new URL(url);
+    
+    // Only allow HTTP/HTTPS
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { valid: false, error: 'Only HTTP and HTTPS protocols allowed' };
+    }
+    
+    // Block private IP ranges and localhost
+    const hostname = parsed.hostname;
+    const privateRanges = [
+      /^localhost$/i,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^192\.168\./,
+      /^169\.254\./,
+      /^::1$/,
+      /^fc00:/,
+      /^fe80:/
+    ];
+    
+    if (privateRanges.some(range => range.test(hostname))) {
+      return { valid: false, error: 'Private IP addresses and localhost not allowed' };
+    }
+    
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Invalid URL format' };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -27,6 +60,13 @@ Deno.serve(async (req) => {
     
     if (monitorError || !monitor) {
       throw new Error(`Monitor not found: ${monitorError?.message}`);
+    }
+
+    // Validate URL to prevent SSRF attacks
+    const validation = isValidMonitorUrl(monitor.url);
+    if (!validation.valid) {
+      console.error(`Invalid URL rejected: ${monitor.url} - ${validation.error}`);
+      throw new Error(validation.error);
     }
 
     console.log(`Testing URL: ${monitor.url}`);
