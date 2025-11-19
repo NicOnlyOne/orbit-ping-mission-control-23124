@@ -36,8 +36,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (!slackWebhookUrl) {
       console.error("Missing Slack webhook URL");
       return new Response(
-        JSON.stringify({ error: "Slack webhook not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Service temporarily unavailable" }),
+        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -105,8 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Slack API error:", slackError);
       return new Response(
         JSON.stringify({ 
-          error: "Failed to send Slack notification",
-          details: slackError
+          error: "Failed to send notification"
         }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
@@ -114,7 +113,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("Error in notify-slack function:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
+      JSON.stringify({ 
+        error: "An error occurred",
+        code: "INTERNAL_ERROR"
+      }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

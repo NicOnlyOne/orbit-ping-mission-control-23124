@@ -26,7 +26,11 @@ Deno.serve(async (req) => {
       .single();
     
     if (monitorError || !monitor) {
-      throw new Error(`Monitor not found: ${monitorError?.message}`);
+      console.error("Monitor lookup failed:", monitorError);
+      return new Response(
+        JSON.stringify({ error: "Resource not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
     console.log(`Testing URL: ${monitor.url}`);
@@ -105,8 +109,11 @@ Deno.serve(async (req) => {
     });
     
   } catch (error) {
-    console.error("Error:", String(error));
-    return new Response(JSON.stringify({ error: String(error) }), {
+    console.error("Error testing URL:", error);
+    return new Response(JSON.stringify({ 
+      error: "An error occurred while testing the URL",
+      code: "INTERNAL_ERROR"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

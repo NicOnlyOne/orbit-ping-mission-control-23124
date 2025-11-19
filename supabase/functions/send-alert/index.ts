@@ -44,9 +44,9 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (monitorError || !monitor) {
-      console.error("Monitor not found:", monitorError);
+      console.error("Monitor lookup failed:", monitorError);
       return new Response(
-        JSON.stringify({ error: "Monitor not found" }),
+        JSON.stringify({ error: "Resource not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -56,10 +56,10 @@ const handler = async (req: Request): Promise<Response> => {
     const userEmail = userData?.user?.email;
 
     if (!userEmail) {
-      console.error("User email not found");
+      console.error("User email not found for monitor:", monitor.id);
       return new Response(
-        JSON.stringify({ error: "User email not found" }),
-        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Unable to send notification" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -96,8 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (!resendApiKey) {
       console.error("RESEND_API_KEY not configured");
       return new Response(
-        JSON.stringify({ error: "Email service not configured" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ error: "Service temporarily unavailable" }),
+        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -133,7 +133,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("Error in send-alert function:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error", details: String(error) }),
+      JSON.stringify({ 
+        error: "An error occurred",
+        code: "INTERNAL_ERROR"
+      }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
