@@ -86,15 +86,13 @@ const Profile = () => {
 
   const loadProfile = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .maybeSingle();
+      // Use RPC to get decrypted profile data
+      const { data, error } = await supabase.rpc('get_my_profile');
 
       if (error) throw error;
       
       if (data) {
+        const profileData = data as any;
         const defaultPreferences = {
           alerts: true,
           downtime: true,
@@ -114,16 +112,16 @@ const Profile = () => {
         };
 
         setProfile({
-          full_name: data.full_name || "",
-          email: data.email || user?.email || "",
-          phone_number: data.phone_number || "",
-          avatar_url: data.avatar_url || null,
-          theme_preference: data.theme_preference || "system",
-          slack_username: data.slack_username || "",
-          slack_channel: data.slack_channel || "",
-          notification_email: data.notification_email ?? true,
-          notification_preferences: isValidPreferences(data.notification_preferences) 
-            ? data.notification_preferences 
+          full_name: profileData.full_name || "",
+          email: profileData.email || user?.email || "",
+          phone_number: profileData.phone_number || "",
+          avatar_url: profileData.avatar_url || null,
+          theme_preference: profileData.theme_preference || "system",
+          slack_username: profileData.slack_username || "",
+          slack_channel: profileData.slack_channel || "",
+          notification_email: profileData.notification_email ?? true,
+          notification_preferences: isValidPreferences(profileData.notification_preferences) 
+            ? profileData.notification_preferences 
             : defaultPreferences
         });
       } else {
@@ -148,8 +146,8 @@ const Profile = () => {
             slack_username: "",
             slack_channel: "",
             notification_email: true,
-            notification_preferences: defaultPreferences
-          });
+            notification_preferences: JSON.stringify(defaultPreferences)
+          } as any);
         
         setProfile({
           full_name: "",
@@ -181,8 +179,7 @@ const Profile = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
+        .update({
           full_name: profile.full_name,
           email: profile.email,
           phone_number: profile.phone_number,
@@ -191,8 +188,9 @@ const Profile = () => {
           slack_username: profile.slack_username,
           slack_channel: profile.slack_channel,
           notification_email: profile.notification_email,
-          notification_preferences: profile.notification_preferences
-        }, { onConflict: 'id' });
+          notification_preferences: JSON.stringify(profile.notification_preferences)
+        } as any)
+        .eq('id', user.id);
 
       if (error) throw error;
 

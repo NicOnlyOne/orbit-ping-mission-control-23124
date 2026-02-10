@@ -105,7 +105,7 @@ export type Database = {
           full_name: string | null
           id: string
           notification_email: boolean | null
-          notification_preferences: Json | null
+          notification_preferences: string | null
           phone_number: string | null
           slack_channel: string | null
           slack_username: string | null
@@ -120,7 +120,7 @@ export type Database = {
           full_name?: string | null
           id: string
           notification_email?: boolean | null
-          notification_preferences?: Json | null
+          notification_preferences?: string | null
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
@@ -135,7 +135,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           notification_email?: boolean | null
-          notification_preferences?: Json | null
+          notification_preferences?: string | null
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
@@ -183,7 +183,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_profile: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
