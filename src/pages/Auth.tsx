@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigation } from '@/components/Navigation';
 import { PasswordStrengthChecker } from '@/components/PasswordStrengthChecker';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Rocket, Satellite, Eye, EyeOff } from 'lucide-react';
 
@@ -191,6 +192,33 @@ export default function Auth() {
                 >
                   {isLoading ? 'Connecting to Mission Control...' : 'Launch Dashboard'}
                 </Button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    className="text-sm text-primary hover:underline"
+                    onClick={async () => {
+                      if (!signInData.email) {
+                        toast.error('Enter your Mission ID (email) first, then click forgot password.');
+                        return;
+                      }
+                      try {
+                        const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
+                          redirectTo: `${window.location.origin}/reset-password`,
+                        });
+                        if (error) {
+                          toast.error(`Could not send recovery link: ${error.message}`);
+                        } else {
+                          toast.success('Recovery link sent! Check your inbox, Commander.');
+                        }
+                      } catch {
+                        toast.error('Failed to send recovery link. Try again.');
+                      }
+                    }}
+                  >
+                    Forgot your access code?
+                  </button>
+                </div>
               </form>
             </TabsContent>
 
