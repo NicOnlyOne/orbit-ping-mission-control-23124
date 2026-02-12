@@ -30,6 +30,7 @@ export default function Auth() {
   });
   
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
+  const [resetCooldown, setResetCooldown] = useState(0);
   
   const { signUp, signIn, user } = useAuth();
   const navigate = useNavigate();
@@ -40,6 +41,13 @@ export default function Auth() {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (resetCooldown <= 0) return;
+    const timer = setTimeout(() => setResetCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resetCooldown]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,30 +202,34 @@ export default function Auth() {
                 </Button>
 
                 <div className="text-center">
-                  <button
-                    type="button"
-                    className="text-sm text-primary hover:underline"
-                    onClick={async () => {
-                      if (!signInData.email) {
-                        toast.error('Enter your Mission ID (email) first, then click forgot password.');
-                        return;
-                      }
-                      try {
-                        const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
-                          redirectTo: `${window.location.origin}/reset-password`,
-                        });
-                        if (error) {
-                          toast.error(`Could not send recovery link: ${error.message}`);
-                        } else {
-                          toast.success('Recovery link sent! Check your inbox, Commander.');
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+                      disabled={resetCooldown > 0}
+                      onClick={async () => {
+                        if (!signInData.email) {
+                          toast.error('Enter your Mission ID (email) first, then click forgot password.');
+                          return;
                         }
-                      } catch {
-                        toast.error('Failed to send recovery link. Try again.');
-                      }
-                    }}
-                  >
-                    Forgot your access code?
-                  </button>
+                        setResetCooldown(60);
+                        try {
+                          const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
+                            redirectTo: `${window.location.origin}/reset-password`,
+                          });
+                          if (error) {
+                            toast.error(`Could not send recovery link: ${error.message}`);
+                          } else {
+                            toast.success('Recovery link sent! Check your inbox, Commander.');
+                          }
+                        } catch {
+                          toast.error('Failed to send recovery link. Try again.');
+                        }
+                      }}
+                    >
+                      {resetCooldown > 0
+                        ? `Retry in ${resetCooldown}s`
+                        : 'Forgot your access code?'}
+                    </button>
                 </div>
               </form>
             </TabsContent>
