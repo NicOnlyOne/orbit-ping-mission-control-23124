@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Navigation } from '@/components/Navigation';
 import { PasswordStrengthChecker } from '@/components/PasswordStrengthChecker';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { KeyRound, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -17,7 +17,38 @@ export default function ResetPassword() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isPasswordStrong, setIsPasswordStrong] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState(false);
   const navigate = useNavigate();
+
+  // Wait for Supabase to process the recovery token from the URL
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSessionReady(true);
+      }
+    });
+
+    // Also check if session already exists (e.g. page refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      }
+    });
+
+    // Timeout after 10s if no session arrives
+    const timeout = setTimeout(() => {
+      setSessionReady((ready) => {
+        if (!ready) setSessionError(true);
+        return ready;
+      });
+    }, 10000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +86,21 @@ export default function ResetPassword() {
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
 
-        <Card className="w-full max-w-md relative z-10 bg-space-medium/80 border-space-light backdrop-blur-sm">
+       <Card className="w-full max-w-md relative z-10 bg-space-medium/80 border-space-light backdrop-blur-sm">
+        {sessionError ? (
+          <CardContent className="pt-8 text-center space-y-4">
+            <p className="text-destructive">Recovery link expired or invalid. Please request a new one.</p>
+            <Button variant="ghost" onClick={() => navigate('/auth')}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back to Sign In
+            </Button>
+          </CardContent>
+        ) : !sessionReady ? (
+          <CardContent className="pt-8 text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Verifying recovery link…</p>
+          </CardContent>
+        ) : (
+          <>
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto bg-gradient-to-r from-primary to-accent p-3 rounded-full w-16 h-16 flex items-center justify-center">
               <KeyRound className="h-8 w-8 text-white" />
@@ -140,6 +185,8 @@ export default function ResetPassword() {
               </Button>
             </form>
           </CardContent>
+          </>
+        )}
         </Card>
       </div>
     </div>
