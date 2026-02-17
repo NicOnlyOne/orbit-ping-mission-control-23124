@@ -17,8 +17,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface AdminUser {
   id: string;
@@ -37,15 +45,16 @@ const getPlanBadgeVariant = (plan: string) => {
   return "secondary";
 };
 
+const PLANS: { value: string; label: string }[] = [
+  { value: "free", label: "Free" },
+  { value: "pro-25", label: "Pro 25" },
+  { value: "pro-50", label: "Pro 50" },
+  { value: "enterprise-100", label: "Enterprise 100" },
+  { value: "enterprise-250", label: "Enterprise 250" },
+];
+
 const getPlanLabel = (plan: string) => {
-  switch (plan) {
-    case "free": return "Free";
-    case "pro-25": return "Pro 25";
-    case "pro-50": return "Pro 50";
-    case "enterprise-100": return "Enterprise 100";
-    case "enterprise-250": return "Enterprise 250";
-    default: return plan;
-  }
+  return PLANS.find((p) => p.value === plan)?.label || plan;
 };
 
 const AdminDashboard = () => {
@@ -71,6 +80,22 @@ const AdminDashboard = () => {
       console.error("Failed to load users:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePlanChange = async (userId: string, newPlan: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-update-plan", {
+        body: { userId, plan: newPlan },
+      });
+      if (error) throw error;
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, subscription_plan: newPlan } : u))
+      );
+      toast.success(`Plan updated to ${getPlanLabel(newPlan)}`);
+    } catch (error) {
+      console.error("Failed to update plan:", error);
+      toast.error("Failed to update plan");
     }
   };
 
@@ -265,9 +290,23 @@ const AdminDashboard = () => {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
                           <TableCell>
-                            <Badge variant={getPlanBadgeVariant(u.subscription_plan)}>
-                              {getPlanLabel(u.subscription_plan)}
-                            </Badge>
+                            <Select
+                              value={u.subscription_plan}
+                              onValueChange={(val) => handlePlanChange(u.id, val)}
+                            >
+                              <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {PLANS.map((p) => (
+                                  <SelectItem key={p.value} value={p.value}>
+                                    <Badge variant={getPlanBadgeVariant(p.value)} className="text-xs">
+                                      {p.label}
+                                    </Badge>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="text-center text-sm">{u.monitors_total}</TableCell>
                           <TableCell className="text-center text-sm">{u.monitors_enabled}</TableCell>
