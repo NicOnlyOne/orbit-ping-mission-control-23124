@@ -28,15 +28,14 @@ const handler = async (req: Request): Promise<Response> => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user: callerUser }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !callerUser) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     }
 
-    const adminUserId = claimsData.claims.sub;
+    const adminUserId = callerUser.id;
 
     // Verify admin role
     const adminClient = createClient(
