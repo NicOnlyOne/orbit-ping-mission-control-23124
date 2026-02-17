@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite } from "lucide-react";
+import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -73,6 +73,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [planFilter, setPlanFilter] = useState<string>("all");
   const [pendingChange, setPendingChange] = useState<{ userId: string; userName: string; currentPlan: string; newPlan: string } | null>(null);
   useEffect(() => {
     if (isAdmin) {
@@ -143,12 +144,13 @@ const AdminDashboard = () => {
     );
   }
 
-  const filteredUsers = users.filter(
-    (u) =>
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch =
       u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
-      u.subscription_plan.toLowerCase().includes(search.toLowerCase())
-  );
+      (u.full_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchesPlan = planFilter === "all" || u.subscription_plan === planFilter;
+    return matchesSearch && matchesPlan;
+  });
 
   const totalMonitors = users.reduce((sum, u) => sum + u.monitors_total, 0);
   const activeMonitors = users.reduce((sum, u) => sum + u.monitors_enabled, 0);
@@ -254,14 +256,30 @@ const AdminDashboard = () => {
                   <Users className="h-5 w-5 text-primary" />
                   All Users ({filteredUsers.length})
                 </CardTitle>
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search users..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9 bg-space-dark border-space-light"
-                  />
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <Select value={planFilter} onValueChange={setPlanFilter}>
+                    <SelectTrigger className="w-full sm:w-[150px] h-9 bg-space-dark border-space-light text-sm">
+                      <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                      <SelectValue placeholder="All Plans" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Plans</SelectItem>
+                      {PLANS.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 bg-space-dark border-space-light"
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
