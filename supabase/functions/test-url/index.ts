@@ -58,7 +58,14 @@ Deno.serve(async (req) => {
     } catch (err) {
       responseTime = Date.now() - start;
       status = "DOWN";
-      error = String(err);
+      const errStr = String(err);
+      if (errStr.includes("invalid peer certificate") || errStr.includes("certificate") || errStr.includes("SSL") || errStr.includes("tls")) {
+        error = "🔒 SSL Certificate Error: The site's SSL certificate is invalid or expired. Please renew it on your hosting provider.";
+      } else if (errStr.includes("abort")) {
+        error = "⏱️ Connection timed out after 30 seconds.";
+      } else {
+        error = errStr;
+      }
     }
 
     const previousStatus = monitor.status;
