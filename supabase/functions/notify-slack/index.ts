@@ -5,10 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
-
 interface SlackNotificationRequest {
-  channel: string;
+  webhookUrl: string;
   message: string;
   title?: string;
   color?: string;
@@ -24,26 +22,8 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "Service not configured" }),
-        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    const SLACK_API_KEY = Deno.env.get("SLACK_API_KEY");
-    if (!SLACK_API_KEY) {
-      console.error("SLACK_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "Slack integration not connected" }),
-        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
     const {
-      channel,
+      webhookUrl,
       message,
       title = "MissionControl Alert",
       color = "#FF5C5C",
@@ -53,15 +33,23 @@ const handler = async (req: Request): Promise<Response> => {
       username,
     }: SlackNotificationRequest = await req.json();
 
-    if (!message || !channel) {
+    if (!webhookUrl || !message) {
       return new Response(
-        JSON.stringify({ error: "Message and channel are required" }),
+        JSON.stringify({ error: "webhookUrl and message are required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Build Slack Block Kit message for richer formatting
-    const blocks = [
+    // Validate webhook URL format
+    if (!webhookUrl.startsWith("https://hooks.slack.com/")) {
+      return new Response(
+        JSON.stringify({ error: "Invalid Slack webhook URL" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Build Slack Block Kit message
+    const blocks: any[] = [
       {
         type: "header",
         text: { type: "plain_text", text: title, emoji: true },
@@ -78,12 +66,11 @@ const handler = async (req: Request): Promise<Response> => {
       if (url) fields.push({ type: "mrkdwn", text: `*URL:*\n${url}` });
       if (timestamp) fields.push({ type: "mrkdwn", text: `*Time:*\n${new Date(timestamp).toLocaleString()}` });
       if (username) fields.push({ type: "mrkdwn", text: `*User:*\n${username}` });
-      blocks.push({ type: "section" as const, text: undefined as any, fields } as any);
+      blocks.push({ type: "section", fields });
     }
 
-    // Also include a fallback attachment with color bar
-    const payload: Record<string, unknown> = {
-      channel,
+    // Slack Incoming Webhooks payload
+    const payload = {
       text: `${title}: ${message}`,
       blocks,
       attachments: [{ color, fallback: message, text: "" }],
@@ -91,36 +78,30 @@ const handler = async (req: Request): Promise<Response> => {
       icon_emoji: ":rocket:",
     };
 
-    console.log(`Sending Slack notification to ${channel}: ${title}`);
+    console.log(`Sending Slack notification via user webhook`);
 
-    const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
+    const slackResponse = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": SLACK_API_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const slackData = await slackResponse.json();
-
-    if (!slackResponse.ok || !slackData.ok) {
-      console.error("Slack API error:", JSON.stringify(slackData));
+    if (!slackResponse.ok) {
+      const errorText = await slackResponse.text();
+      console.error("Slack webhook error:", errorText);
       return new Response(
-        JSON.stringify({ error: "Failed to send Slack notification", details: slackData.error }),
+        JSON.stringify({ error: "Failed to send Slack notification", details: errorText }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("Slack notification sent successfully");
+    console.log("Slack notification sent successfully via webhook");
     return new Response(
       JSON.stringify({ success: true, message: "Slack notification sent successfully" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: unknown) {
     console.error("Error in notify-slack function:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: "An error occurred", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

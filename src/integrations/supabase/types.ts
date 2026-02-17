@@ -109,6 +109,7 @@ export type Database = {
           phone_number: string | null
           slack_channel: string | null
           slack_username: string | null
+          slack_webhook_url: string | null
           subscription_plan: string | null
           theme_preference: string | null
           updated_at: string | null
@@ -124,6 +125,7 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          slack_webhook_url?: string | null
           subscription_plan?: string | null
           theme_preference?: string | null
           updated_at?: string | null
@@ -139,6 +141,7 @@ export type Database = {
           phone_number?: string | null
           slack_channel?: string | null
           slack_username?: string | null
+          slack_webhook_url?: string | null
           subscription_plan?: string | null
           theme_preference?: string | null
           updated_at?: string | null

@@ -6,8 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
-
 interface AlertRequest {
   monitorId: string;
   status: 'DOWN' | 'UP';
@@ -16,19 +14,16 @@ interface AlertRequest {
   responseTime?: number;
 }
 
-async function sendSlackAlert(
-  channel: string,
+async function sendSlackWebhook(
+  webhookUrl: string,
   monitor: any,
   status: string,
   url: string,
   errorMessage?: string,
   responseTime?: number
 ) {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const SLACK_API_KEY = Deno.env.get("SLACK_API_KEY");
-
-  if (!LOVABLE_API_KEY || !SLACK_API_KEY) {
-    console.log("Slack connector not configured, skipping Slack notification");
+  if (!webhookUrl || !webhookUrl.startsWith("https://hooks.slack.com/")) {
+    console.log("Invalid or missing Slack webhook URL, skipping");
     return;
   }
 
@@ -48,7 +43,6 @@ async function sendSlackAlert(
   if (!isDown && responseTime) messageParts.push(`*Response time:* ${responseTime}ms`);
 
   const payload = {
-    channel,
     text: title,
     blocks: [
       { type: "header", text: { type: "plain_text", text: title, emoji: true } },
@@ -60,24 +54,19 @@ async function sendSlackAlert(
   };
 
   try {
-    const response = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
+    const response = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": SLACK_API_KEY,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    if (!response.ok || !data.ok) {
-      console.error("Slack notification failed:", JSON.stringify(data));
+    if (!response.ok) {
+      console.error("Slack webhook failed:", await response.text());
     } else {
-      console.log(`Slack notification sent to ${channel}`);
+      console.log("Slack notification sent via user webhook");
     }
   } catch (error) {
-    console.error("Error sending Slack notification:", error);
+    console.error("Error sending Slack webhook:", error);
   }
 }
 
@@ -168,7 +157,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email alert (if email notifications enabled)
+    // Send email alert
     const shouldSendEmail = profile?.notification_email !== false;
     if (shouldSendEmail) {
       const subject = isDown 
@@ -223,11 +212,11 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Send Slack notification if enabled and configured
-    if (notificationPrefs.slack && profile?.slack_channel) {
-      console.log(`Sending Slack alert to channel: ${profile.slack_channel}`);
-      await sendSlackAlert(
-        profile.slack_channel,
+    // Send Slack notification via user's own webhook URL
+    if (notificationPrefs.slack && profile?.slack_webhook_url) {
+      console.log("Sending Slack alert via user's webhook");
+      await sendSlackWebhook(
+        profile.slack_webhook_url,
         monitor,
         status,
         url,

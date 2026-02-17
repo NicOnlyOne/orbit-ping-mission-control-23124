@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, Send, Check, X, Rocket } from "lucide-react";
@@ -10,19 +8,19 @@ import { MessageSquare, Send, Check, X, Rocket } from "lucide-react";
 interface SlackIntegrationTestProps {
   slackChannel?: string;
   slackUsername?: string;
+  slackWebhookUrl: string;
 }
 
-export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: SlackIntegrationTestProps) => {
+export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "", slackWebhookUrl }: SlackIntegrationTestProps) => {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'idle' | 'success' | 'error'>('idle');
-  const [channel, setChannel] = useState(slackChannel);
   const { toast } = useToast();
 
   const testSlackNotification = async () => {
-    if (!channel) {
+    if (!slackWebhookUrl) {
       toast({
-        title: "Channel Required",
-        description: "Please enter a Slack channel name (e.g. #alerts)",
+        title: "Webhook URL Required",
+        description: "Please add your Slack Webhook URL in the field above",
         variant: "destructive"
       });
       return;
@@ -34,7 +32,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
     try {
       const { data, error } = await supabase.functions.invoke('notify-slack', {
         body: {
-          channel: channel.startsWith('#') ? channel : `#${channel}`,
+          webhookUrl: slackWebhookUrl,
           message: `Hello ${slackUsername || 'there'}! 👋 This is a test notification to verify your Slack integration is working correctly.\n\n✅ *Integration Status:* Active`,
           title: "🛰️ MissionControl Integration Test",
           color: "#2ECC71",
@@ -49,7 +47,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
         setTestResult('error');
         toast({
           title: "Test Failed ❌",
-          description: error.message || "Failed to send test notification. Check your Slack configuration.",
+          description: error.message || "Failed to send test notification.",
           variant: "destructive"
         });
         return;
@@ -59,9 +57,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
         setTestResult('error');
         toast({
           title: "Test Failed ❌",
-          description: data.error === "Slack integration not connected" 
-            ? "Slack connector is not linked. Please contact your admin."
-            : data.details || data.error,
+          description: data.error,
           variant: "destructive"
         });
         return;
@@ -70,7 +66,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
       setTestResult('success');
       toast({
         title: "Test Sent! 🎉",
-        description: `Check ${channel} in Slack for the test notification`
+        description: `Check ${slackChannel || 'your Slack channel'} for the test notification`
       });
     } catch (error: any) {
       console.error('Unexpected error during Slack test:', error);
@@ -94,23 +90,13 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="testChannel">Channel to send test message</Label>
-          <Input
-            id="testChannel"
-            value={channel}
-            onChange={(e) => setChannel(e.target.value)}
-            placeholder="#alerts"
-            className="bg-space-dark border-space-light"
-          />
-          <p className="text-xs text-muted-foreground">
-            The bot can post to any public channel. For private channels, invite the bot first.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Send a test message to verify your webhook is working correctly.
+        </p>
 
         <Button
           onClick={testSlackNotification}
-          disabled={isTesting || !channel}
+          disabled={isTesting || !slackWebhookUrl}
           variant="outline"
           size="sm"
         >
@@ -134,7 +120,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "" }: 
 
         {testResult === 'error' && (
           <div className="p-3 bg-rocket-red/10 border border-rocket-red/20 rounded-lg">
-            <p className="text-sm text-rocket-red">❌ Test failed. Make sure the channel exists and the bot has access.</p>
+            <p className="text-sm text-rocket-red">❌ Test failed. Make sure the webhook URL is correct.</p>
           </div>
         )}
       </CardContent>
