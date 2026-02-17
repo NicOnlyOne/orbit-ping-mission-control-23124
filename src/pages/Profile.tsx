@@ -28,6 +28,7 @@ interface UserProfile {
   theme_preference: string;
   slack_username: string;
   slack_channel: string;
+  slack_webhook_url: string;
   notification_email: boolean;
   notification_preferences: {
     alerts: boolean;
@@ -52,6 +53,7 @@ const Profile = () => {
     theme_preference: "system",
     slack_username: "",
     slack_channel: "",
+    slack_webhook_url: "",
     notification_email: true,
     notification_preferences: {
       alerts: true,
@@ -120,6 +122,7 @@ const Profile = () => {
           theme_preference: profileData.theme_preference || "system",
           slack_username: profileData.slack_username || "",
           slack_channel: profileData.slack_channel || "",
+          slack_webhook_url: profileData.slack_webhook_url || "",
           notification_email: profileData.notification_email ?? true,
           notification_preferences: isValidPreferences(profileData.notification_preferences) 
             ? profileData.notification_preferences 
@@ -146,6 +149,7 @@ const Profile = () => {
             theme_preference: "system",
             slack_username: "",
             slack_channel: "",
+            slack_webhook_url: "",
             notification_email: true,
             notification_preferences: JSON.stringify(defaultPreferences)
           } as any);
@@ -158,6 +162,7 @@ const Profile = () => {
           theme_preference: "system",
           slack_username: "",
           slack_channel: "",
+          slack_webhook_url: "",
           notification_email: true,
           notification_preferences: defaultPreferences
         });
@@ -188,6 +193,7 @@ const Profile = () => {
           theme_preference: profile.theme_preference,
           slack_username: profile.slack_username,
           slack_channel: profile.slack_channel,
+          slack_webhook_url: profile.slack_webhook_url,
           notification_email: profile.notification_email,
           notification_preferences: JSON.stringify(profile.notification_preferences)
         } as any)
@@ -543,9 +549,29 @@ const Profile = () => {
                   </div>
                 </div>
               )}
+              <div className="space-y-2">
+                <Label htmlFor="slackWebhookUrl">Slack Webhook URL</Label>
+                <Input
+                  id="slackWebhookUrl"
+                  value={profile.slack_webhook_url}
+                  onChange={(e) => setProfile(prev => ({ ...prev, slack_webhook_url: e.target.value }))}
+                  placeholder="https://hooks.slack.com/services/T.../B.../..."
+                  className="bg-space-dark border-space-light"
+                  disabled={!features.slackNotifications}
+                  type="url"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Create an Incoming Webhook in <strong>your</strong> Slack workspace: go to{" "}
+                  <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                    api.slack.com/apps
+                  </a>{" "}
+                  → Create App → Incoming Webhooks → Add to channel. Paste the URL here.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="slackUsername">Slack Username</Label>
+                  <Label htmlFor="slackUsername">Display Name</Label>
                   <Input
                     id="slackUsername"
                     value={profile.slack_username}
@@ -555,22 +581,22 @@ const Profile = () => {
                     disabled={!features.slackNotifications}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Your Slack username for notifications
+                    Your name shown in Slack alerts
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="slackChannel">Slack Channel</Label>
+                  <Label htmlFor="slackChannel">Channel Name</Label>
                   <Input
                     id="slackChannel"
                     value={profile.slack_channel}
                     onChange={(e) => setProfile(prev => ({ ...prev, slack_channel: e.target.value }))}
-                    placeholder="#channel or @user"
+                    placeholder="#alerts"
                     className="bg-space-dark border-space-light"
                     disabled={!features.slackNotifications}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Channel or user to send alerts to
+                    For reference only — the webhook posts to the channel you chose during setup
                   </p>
                 </div>
               </div>
@@ -579,11 +605,11 @@ const Profile = () => {
                 <div className="space-y-1">
                   <p className="font-medium">Slack Notifications</p>
                   <p className="text-sm text-muted-foreground">
-                    Receive alerts in Slack when your sites go offline
+                    Receive alerts in your Slack workspace when your sites go offline
                   </p>
-                  {features.slackNotifications && (!profile.slack_username || !profile.slack_channel) && (
+                  {features.slackNotifications && !profile.slack_webhook_url && (
                     <p className="text-sm text-orange-500">
-                      Please configure Slack username and channel above to enable notifications
+                      Please add your Slack Webhook URL above to enable notifications
                     </p>
                   )}
                   {!features.slackNotifications && (
@@ -593,7 +619,7 @@ const Profile = () => {
                   )}
                 </div>
                 <Switch
-                  checked={features.slackNotifications && profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
+                  checked={features.slackNotifications && profile.notification_preferences.slack && !!profile.slack_webhook_url}
                   onCheckedChange={(checked) => {
                     if (!features.slackNotifications) {
                       handlePlanRestrictedAction("Slack notifications", "Pro");
@@ -607,14 +633,15 @@ const Profile = () => {
                       } 
                     }));
                   }}
-                  disabled={!features.slackNotifications || (!profile.slack_username || !profile.slack_channel)}
+                  disabled={!features.slackNotifications || !profile.slack_webhook_url}
                 />
               </div>
 
-              {features.slackNotifications && profile.slack_channel && (
+              {features.slackNotifications && profile.slack_webhook_url && (
                 <SlackIntegrationTest
                   slackChannel={profile.slack_channel}
                   slackUsername={profile.slack_username}
+                  slackWebhookUrl={profile.slack_webhook_url}
                 />
               )}
             </CardContent>
@@ -814,8 +841,8 @@ const Profile = () => {
                           <div>
                             <p className="font-medium text-sm">Slack Notifications</p>
                             <p className="text-xs text-muted-foreground">Receive alerts in Slack</p>
-                            {features.slackNotifications && (!profile.slack_username || !profile.slack_channel) && (
-                              <p className="text-xs text-orange-500">Please configure Slack integration above</p>
+                            {features.slackNotifications && !profile.slack_webhook_url && (
+                              <p className="text-xs text-orange-500">Please configure Slack webhook URL above</p>
                             )}
                             {!features.slackNotifications && (
                               <p className="text-xs text-purple-400">Pro plan required</p>
@@ -828,7 +855,7 @@ const Profile = () => {
                           )}
                         </div>
                         <Switch
-                          checked={features.slackNotifications && profile.notification_preferences.slack && !!(profile.slack_username && profile.slack_channel)}
+                          checked={features.slackNotifications && profile.notification_preferences.slack && !!profile.slack_webhook_url}
                           onCheckedChange={(checked) => {
                             if (!features.slackNotifications) {
                               handlePlanRestrictedAction("Slack notifications", "Pro");
@@ -842,7 +869,7 @@ const Profile = () => {
                               } 
                             }));
                           }}
-                          disabled={!features.slackNotifications || (!profile.slack_username || !profile.slack_channel)}
+                          disabled={!features.slackNotifications || !profile.slack_webhook_url}
                         />
                       </div>
                     </div>
