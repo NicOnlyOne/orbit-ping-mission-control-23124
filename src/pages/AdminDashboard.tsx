@@ -34,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite, Filter } from "lucide-react";
+import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -75,11 +75,16 @@ const AdminDashboard = () => {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [pendingChange, setPendingChange] = useState<{ userId: string; userName: string; currentPlan: string; newPlan: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
     }
   }, [isAdmin]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, planFilter]);
 
   const loadUsers = async () => {
     setIsLoading(true);
@@ -151,6 +156,11 @@ const AdminDashboard = () => {
     const matchesPlan = planFilter === "all" || u.subscription_plan === planFilter;
     return matchesSearch && matchesPlan;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
 
   const totalMonitors = users.reduce((sum, u) => sum + u.monitors_total, 0);
   const activeMonitors = users.reduce((sum, u) => sum + u.monitors_enabled, 0);
@@ -289,77 +299,107 @@ const AdminDashboard = () => {
                   <div className="animate-spin text-4xl">🛰️</div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-space-light hover:bg-space-dark/50">
-                        <TableHead>User</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead className="text-center">Monitors</TableHead>
-                        <TableHead className="text-center">Active</TableHead>
-                        <TableHead>Joined</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.map((u) => (
-                        <TableRow key={u.id} className="border-space-light hover:bg-space-dark/30">
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-8 w-8">
-                                {u.avatar_url ? (
-                                  <AvatarImage src={u.avatar_url} alt={u.full_name || "User"} />
-                                ) : null}
-                                <AvatarFallback className="bg-muted text-xs">
-                                  <User className="h-3 w-3" />
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="font-medium text-sm">
-                                {u.full_name || "—"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={u.subscription_plan}
-                              onValueChange={(val) => {
-                                if (val !== u.subscription_plan) {
-                                  setPendingChange({ userId: u.id, userName: u.full_name || u.email, currentPlan: u.subscription_plan, newPlan: val });
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {PLANS.map((p) => (
-                                  <SelectItem key={p.value} value={p.value}>
-                                    <Badge variant={getPlanBadgeVariant(p.value)} className="text-xs">
-                                      {p.label}
-                                    </Badge>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-center text-sm">{u.monitors_total}</TableCell>
-                          <TableCell className="text-center text-sm">{u.monitors_enabled}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {u.created_at ? format(new Date(u.created_at), "MMM d, yyyy") : "—"}
-                          </TableCell>
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-space-light hover:bg-space-dark/50">
+                          <TableHead>User</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Plan</TableHead>
+                          <TableHead className="text-center">Monitors</TableHead>
+                          <TableHead className="text-center">Active</TableHead>
+                          <TableHead>Joined</TableHead>
                         </TableRow>
-                      ))}
-                      {filteredUsers.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            {search ? "No users match your search" : "No users found"}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedUsers.map((u) => (
+                          <TableRow key={u.id} className="border-space-light hover:bg-space-dark/30">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                  {u.avatar_url ? (
+                                    <AvatarImage src={u.avatar_url} alt={u.full_name || "User"} />
+                                  ) : null}
+                                  <AvatarFallback className="bg-muted text-xs">
+                                    <User className="h-3 w-3" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-sm">
+                                  {u.full_name || "—"}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                            <TableCell>
+                              <Select
+                                value={u.subscription_plan}
+                                onValueChange={(val) => {
+                                  if (val !== u.subscription_plan) {
+                                    setPendingChange({ userId: u.id, userName: u.full_name || u.email, currentPlan: u.subscription_plan, newPlan: val });
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {PLANS.map((p) => (
+                                    <SelectItem key={p.value} value={p.value}>
+                                      <Badge variant={getPlanBadgeVariant(p.value)} className="text-xs">
+                                        {p.label}
+                                      </Badge>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-center text-sm">{u.monitors_total}</TableCell>
+                            <TableCell className="text-center text-sm">{u.monitors_enabled}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {u.created_at ? format(new Date(u.created_at), "MMM d, yyyy") : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {paginatedUsers.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                              {search || planFilter !== "all" ? "No users match your filters" : "No users found"}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {filteredUsers.length > PAGE_SIZE && (
+                    <div className="flex items-center justify-between pt-4 border-t border-space-light mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={safePage <= 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
+                          Page {safePage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={safePage >= totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
