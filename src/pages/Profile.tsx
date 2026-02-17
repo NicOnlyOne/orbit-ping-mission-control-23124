@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, SubscriptionPlan } from "@/hooks/useSubscription";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import { PricingModal } from "@/components/PricingModal";
 import { PlanBadge } from "@/components/PlanBadge";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
-import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare, Crown, Smartphone } from "lucide-react";
+import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare, Crown, Smartphone, Shield } from "lucide-react";
 import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 
 interface UserProfile {
@@ -41,7 +42,8 @@ interface UserProfile {
 
 const Profile = () => {
   const { user, loading } = useAuth();
-  const { plan, features } = useSubscription();
+  const { plan, features, upgradePlan, refreshSubscription } = useSubscription();
+  const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const [showPricing, setShowPricing] = useState(false);
   
@@ -415,7 +417,57 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Profile Information */}
+          {/* Admin Plan Switcher */}
+          {isAdmin && (
+            <Card className="bg-space-medium border-primary/30 border-dashed">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  Admin: Plan Simulator
+                  <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full ml-auto">Admin Only</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Switch between plans to test features as different subscription tiers. This does not affect billing.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'free', label: 'Free' },
+                    { value: 'pro-25', label: 'Pro 25' },
+                    { value: 'pro-50', label: 'Pro 50' },
+                    { value: 'enterprise-100', label: 'Enterprise 100' },
+                    { value: 'enterprise-250', label: 'Enterprise 250' },
+                  ] as { value: SubscriptionPlan; label: string }[]).map((p) => (
+                    <Button
+                      key={p.value}
+                      variant={plan === p.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await upgradePlan(p.value);
+                          toast({
+                            title: "Plan Switched",
+                            description: `Now testing as ${p.label}`,
+                          });
+                        } catch {
+                          toast({
+                            title: "Error",
+                            description: "Failed to switch plan",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      {p.label}
+                      {plan === p.value && " ✓"}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-space-medium border-space-light">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

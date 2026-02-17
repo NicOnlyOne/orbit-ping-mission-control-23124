@@ -86,10 +86,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          subscription_plan: newPlan,
-          subscription_status: 'active',
-          subscription_start_date: new Date().toISOString()
-        })
+          subscription_plan: newPlan
+        } as any)
         .eq('id', user.id);
 
       if (error) throw error;
