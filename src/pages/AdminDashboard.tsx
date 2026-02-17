@@ -6,6 +6,16 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +73,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-
+  const [pendingChange, setPendingChange] = useState<{ userId: string; userName: string; currentPlan: string; newPlan: string } | null>(null);
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
@@ -83,7 +93,10 @@ const AdminDashboard = () => {
     }
   };
 
-  const handlePlanChange = async (userId: string, newPlan: string) => {
+  const confirmPlanChange = async () => {
+    if (!pendingChange) return;
+    const { userId, newPlan } = pendingChange;
+    setPendingChange(null);
     try {
       const { data, error } = await supabase.functions.invoke("admin-update-plan", {
         body: { userId, plan: newPlan },
@@ -292,7 +305,11 @@ const AdminDashboard = () => {
                           <TableCell>
                             <Select
                               value={u.subscription_plan}
-                              onValueChange={(val) => handlePlanChange(u.id, val)}
+                              onValueChange={(val) => {
+                                if (val !== u.subscription_plan) {
+                                  setPendingChange({ userId: u.id, userName: u.full_name || u.email, currentPlan: u.subscription_plan, newPlan: val });
+                                }
+                              }}
                             >
                               <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-xs">
                                 <SelectValue />
@@ -330,6 +347,29 @@ const AdminDashboard = () => {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={!!pendingChange} onOpenChange={(open) => !open && setPendingChange(null)}>
+        <AlertDialogContent className="bg-space-medium border-space-light">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Plan Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Change <span className="font-semibold text-foreground">{pendingChange?.userName}</span>'s plan from{" "}
+              <Badge variant={getPlanBadgeVariant(pendingChange?.currentPlan || "")} className="text-xs mx-1">
+                {getPlanLabel(pendingChange?.currentPlan || "")}
+              </Badge>{" "}
+              to{" "}
+              <Badge variant={getPlanBadgeVariant(pendingChange?.newPlan || "")} className="text-xs mx-1">
+                {getPlanLabel(pendingChange?.newPlan || "")}
+              </Badge>
+              ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPlanChange}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
