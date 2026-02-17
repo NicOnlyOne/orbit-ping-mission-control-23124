@@ -6,6 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { Activity, Users, DollarSign, TrendingUp, Calendar, BarChart3 } from "lucide-react";
@@ -26,6 +27,7 @@ type TimeRange = "7d" | "30d" | "all";
 
 const Analytics = () => {
   const { user, loading } = useAuth();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -141,7 +143,7 @@ const Analytics = () => {
     }
   };
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
@@ -152,24 +154,12 @@ const Analytics = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <p className="text-xl text-muted-foreground">Access denied</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Check if user is admin
-  if (user.email !== "nicolas@bluedaysolutions.com") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">👨‍🚀</div>
-          <p className="text-xl text-muted-foreground mb-2">Admin Access Required</p>
+          <p className="text-xl text-foreground mb-2">Admin Access Required</p>
           <p className="text-sm text-muted-foreground">This dashboard is restricted to mission control admins only</p>
         </div>
       </div>

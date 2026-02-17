@@ -104,12 +104,20 @@ export function Navigation() {
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/analytics" className="flex items-center w-full">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Analytics
-                    </Link>
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center w-full">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/analytics" className="flex items-center w-full">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Analytics
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setShowPricing(true)} className="flex items-center w-full">
