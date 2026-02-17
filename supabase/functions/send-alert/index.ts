@@ -6,12 +6,79 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
+
 interface AlertRequest {
   monitorId: string;
   status: 'DOWN' | 'UP';
   url: string;
   errorMessage?: string;
   responseTime?: number;
+}
+
+async function sendSlackAlert(
+  channel: string,
+  monitor: any,
+  status: string,
+  url: string,
+  errorMessage?: string,
+  responseTime?: number
+) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const SLACK_API_KEY = Deno.env.get("SLACK_API_KEY");
+
+  if (!LOVABLE_API_KEY || !SLACK_API_KEY) {
+    console.log("Slack connector not configured, skipping Slack notification");
+    return;
+  }
+
+  const isDown = status === 'DOWN';
+  const color = isDown ? "#FF5C5C" : "#2ECC71";
+  const emoji = isDown ? "🚨" : "✅";
+  const title = isDown
+    ? `${emoji} Alert: ${monitor.name} is DOWN`
+    : `${emoji} Recovery: ${monitor.name} is back ONLINE`;
+
+  const messageParts = [
+    `*${monitor.name}* is ${isDown ? 'currently unreachable' : 'back online'}!`,
+    `*URL:* ${url}`,
+    `*Time:* ${new Date().toLocaleString()}`,
+  ];
+  if (isDown && errorMessage) messageParts.push(`*Error:* ${errorMessage}`);
+  if (!isDown && responseTime) messageParts.push(`*Response time:* ${responseTime}ms`);
+
+  const payload = {
+    channel,
+    text: title,
+    blocks: [
+      { type: "header", text: { type: "plain_text", text: title, emoji: true } },
+      { type: "section", text: { type: "mrkdwn", text: messageParts.join("\n") } },
+    ],
+    attachments: [{ color, fallback: title, text: "" }],
+    username: "MissionControl",
+    icon_emoji: ":rocket:",
+  };
+
+  try {
+    const response = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "X-Connection-Api-Key": SLACK_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+      console.error("Slack notification failed:", JSON.stringify(data));
+    } else {
+      console.log(`Slack notification sent to ${channel}`);
+    }
+  } catch (error) {
+    console.error("Error sending Slack notification:", error);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -51,6 +118,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Get user profile for notification preferences
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', monitor.user_id)
+      .single();
+
     // Get user email
     const { data: userData } = await supabaseClient.auth.admin.getUserById(monitor.user_id);
     const userEmail = userData?.user?.email;
@@ -63,68 +137,106 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send email alert
+    // Parse notification preferences
+    let notificationPrefs = { downtime: true, recovery: true, slack: false, sms: false };
+    if (profile?.notification_preferences) {
+      try {
+        const parsed = typeof profile.notification_preferences === 'string'
+          ? JSON.parse(profile.notification_preferences)
+          : profile.notification_preferences;
+        notificationPrefs = { ...notificationPrefs, ...parsed };
+      } catch (e) {
+        console.log("Failed to parse notification preferences, using defaults");
+      }
+    }
+
     const isDown = status === 'DOWN';
-    const subject = isDown 
-      ? `🚨 Alert: ${monitor.name} is DOWN`
-      : `✅ Recovery: ${monitor.name} is back ONLINE`;
 
-    const htmlBody = isDown 
-      ? `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #ff5c5c;">🚨 Mission Alert: Site Down</h2>
-          <p><strong>${monitor.name}</strong> is currently unreachable.</p>
-          <p><strong>URL:</strong> ${url}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-          ${errorMessage ? `<p><strong>Error:</strong> ${errorMessage}</p>` : ''}
-          <p>We'll continue monitoring and notify you when the site recovers.</p>
-        </div>
-      `
-      : `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2ecc71;">✅ Mission Control: Site Recovered</h2>
-          <p><strong>${monitor.name}</strong> is back online!</p>
-          <p><strong>URL:</strong> ${url}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-          ${responseTime ? `<p><strong>Response time:</strong> ${responseTime}ms</p>` : ''}
-          <p>Your site is now operational. All systems go! 🚀</p>
-        </div>
-      `;
-
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    
-    if (!resendApiKey) {
-      console.error("RESEND_API_KEY not configured");
+    // Check if this alert type is enabled
+    if (isDown && !notificationPrefs.downtime) {
+      console.log("Downtime notifications disabled for this user, skipping");
       return new Response(
-        JSON.stringify({ error: "Service temporarily unavailable" }),
-        { status: 503, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        JSON.stringify({ success: true, message: "Notification disabled by user preferences" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+    if (!isDown && !notificationPrefs.recovery) {
+      console.log("Recovery notifications disabled for this user, skipping");
+      return new Response(
+        JSON.stringify({ success: true, message: "Notification disabled by user preferences" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'MissionControl <alerts@updates.lovable.app>',
-        to: [userEmail],
-        subject,
-        html: htmlBody
-      })
-    });
+    // Send email alert (if email notifications enabled)
+    const shouldSendEmail = profile?.notification_email !== false;
+    if (shouldSendEmail) {
+      const subject = isDown 
+        ? `🚨 Alert: ${monitor.name} is DOWN`
+        : `✅ Recovery: ${monitor.name} is back ONLINE`;
 
-    if (!emailResponse.ok) {
-      const error = await emailResponse.text();
-      console.error('Failed to send email:', error);
-      return new Response(
-        JSON.stringify({ error: "Failed to send email alert" }),
-        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      const htmlBody = isDown 
+        ? `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #ff5c5c;">🚨 Mission Alert: Site Down</h2>
+            <p><strong>${monitor.name}</strong> is currently unreachable.</p>
+            <p><strong>URL:</strong> ${url}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            ${errorMessage ? `<p><strong>Error:</strong> ${errorMessage}</p>` : ''}
+            <p>We'll continue monitoring and notify you when the site recovers.</p>
+          </div>
+        `
+        : `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2ecc71;">✅ Mission Control: Site Recovered</h2>
+            <p><strong>${monitor.name}</strong> is back online!</p>
+            <p><strong>URL:</strong> ${url}</p>
+            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            ${responseTime ? `<p><strong>Response time:</strong> ${responseTime}ms</p>` : ''}
+            <p>Your site is now operational. All systems go! 🚀</p>
+          </div>
+        `;
+
+      const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      if (resendApiKey) {
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'MissionControl <alerts@updates.lovable.app>',
+            to: [userEmail],
+            subject,
+            html: htmlBody
+          })
+        });
+
+        if (!emailResponse.ok) {
+          console.error('Failed to send email:', await emailResponse.text());
+        } else {
+          console.log("Email alert sent successfully");
+        }
+      } else {
+        console.error("RESEND_API_KEY not configured, skipping email");
+      }
+    }
+
+    // Send Slack notification if enabled and configured
+    if (notificationPrefs.slack && profile?.slack_channel) {
+      console.log(`Sending Slack alert to channel: ${profile.slack_channel}`);
+      await sendSlackAlert(
+        profile.slack_channel,
+        monitor,
+        status,
+        url,
+        errorMessage,
+        responseTime
       );
     }
 
-    console.log("Alert sent successfully");
+    console.log("Alert processing complete");
     return new Response(
       JSON.stringify({ success: true, message: "Alert sent successfully" }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }

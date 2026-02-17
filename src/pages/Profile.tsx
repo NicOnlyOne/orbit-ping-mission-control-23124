@@ -18,6 +18,7 @@ import { PlanBadge } from "@/components/PlanBadge";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare, Crown, Smartphone } from "lucide-react";
+import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 
 interface UserProfile {
   full_name: string;
@@ -609,6 +610,13 @@ const Profile = () => {
                   disabled={!features.slackNotifications || (!profile.slack_username || !profile.slack_channel)}
                 />
               </div>
+
+              {features.slackNotifications && profile.slack_channel && (
+                <SlackIntegrationTest
+                  slackChannel={profile.slack_channel}
+                  slackUsername={profile.slack_username}
+                />
+              )}
             </CardContent>
           </Card>
 
