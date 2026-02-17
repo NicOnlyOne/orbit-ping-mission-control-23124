@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { LogOut, User, ChevronDown, Crown, BarChart3 } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
+import { LogOut, User, ChevronDown, Crown, BarChart3, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -25,6 +26,7 @@ interface UserProfile {
 export function Navigation() {
   const { user, signOut } = useAuth();
   const { plan } = useSubscription();
+  const { isAdmin } = useAdmin();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPricing, setShowPricing] = useState(false);
 
@@ -84,6 +86,12 @@ export function Navigation() {
                       {profile?.full_name || user.email}
                     </span>
                     <PlanBadge />
+                    {isAdmin && (
+                      <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                        <Shield className="h-3 w-3" />
+                        Admin
+                      </span>
+                    )}
                     <ChevronDown className="h-4 w-4" />
                   </div>
                 </Button>
@@ -95,7 +103,7 @@ export function Navigation() {
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                {user?.email === "nicolas@bluedaysolutions.com" && (
+                {isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link to="/analytics" className="flex items-center w-full">
                       <BarChart3 className="h-4 w-4 mr-2" />
