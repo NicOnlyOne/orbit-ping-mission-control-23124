@@ -16,6 +16,7 @@ interface MissionCardProps {
   responseTime: string;
   monitoringInterval?: number;
   enabled?: boolean;
+  errorMessage?: string | null;
   className?: string;
   onTest?: () => void;
   onDelete?: () => void;
@@ -32,6 +33,7 @@ export const MissionCard = ({
   responseTime, 
   monitoringInterval = 300,
   enabled = true,
+  errorMessage,
   className,
   onTest,
   onDelete,
@@ -138,6 +140,13 @@ export const MissionCard = ({
       
       <CardContent className="space-y-4">
         <StatusIndicator status={status} label="Mission Status" />
+        
+        {status === 'offline' && errorMessage && (
+          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+            <p className="font-medium mb-1">⚠️ Error Details</p>
+            <p className="text-xs text-destructive/80">{errorMessage}</p>
+          </div>
+        )}
         
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
