@@ -176,7 +176,7 @@ async function sendEmailAlert(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'MissionControl <alerts@updates.lovable.app>',
+        from: 'MissionControl <onboarding@resend.dev>',
         to: [email],
         subject,
         html: htmlBody
