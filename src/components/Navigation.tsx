@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/useAdmin";
-import { LogOut, User, ChevronDown, Crown, BarChart3, Shield } from "lucide-react";
+import { LogOut, User, ChevronDown, Crown, BarChart3, Shield, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -17,6 +17,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { PlanBadge } from "./PlanBadge";
 import { PricingModal } from "./PricingModal";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useHighContrast } from "@/hooks/useHighContrast";
 
 interface UserProfile {
   full_name: string;
@@ -29,6 +31,7 @@ export function Navigation() {
   const { isAdmin } = useAdmin();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPricing, setShowPricing] = useState(false);
+  const { highContrast, toggle: toggleContrast } = useHighContrast();
 
   useEffect(() => {
     if (user) {
@@ -62,7 +65,22 @@ export function Navigation() {
           <Badge variant="secondary" className="ml-2 uppercase tracking-wide">Alpha Test</Badge>
         </Link>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleContrast}
+                aria-label={highContrast ? "Switch to standard contrast" : "Switch to high contrast"}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {highContrast ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{highContrast ? "Standard mode" : "High contrast (WCAG)"}</TooltipContent>
+          </Tooltip>
+
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
