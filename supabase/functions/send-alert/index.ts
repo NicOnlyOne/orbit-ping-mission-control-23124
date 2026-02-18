@@ -195,7 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            from: 'MissionControl <alerts@updates.lovable.app>',
+            from: 'MissionControl <onboarding@resend.dev>',
             to: [userEmail],
             subject,
             html: htmlBody
