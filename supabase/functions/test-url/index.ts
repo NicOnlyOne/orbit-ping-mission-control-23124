@@ -142,15 +142,26 @@ async function sendEmailAlert(
   }
 
   const isDown = alertType === "DOWN";
+  const isSSL = errorMsg && (errorMsg.toLowerCase().includes("ssl") || errorMsg.toLowerCase().includes("certificate") || errorMsg.toLowerCase().includes("tls"));
+  
   const subject = isDown 
-    ? `🚨 Alert: ${monitor.name} is DOWN`
+    ? isSSL
+      ? `🔒 SSL Alert: ${monitor.name} has a certificate issue`
+      : `🚨 Alert: ${monitor.name} is DOWN`
     : `✅ Recovery: ${monitor.name} is back ONLINE`;
+
+  const downHeading = isSSL
+    ? `🔒 SSL Certificate Issue Detected`
+    : `🚨 Mission Alert: Site Down`;
+  const downMessage = isSSL
+    ? `<strong>${monitor.name}</strong> has an SSL/TLS certificate problem. The site may be reachable but the connection is not secure.`
+    : `<strong>${monitor.name}</strong> is currently unreachable.`;
 
   const htmlBody = isDown 
     ? `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #ff5c5c;">🚨 Mission Alert: Site Down</h2>
-        <p><strong>${monitor.name}</strong> is currently unreachable.</p>
+        <h2 style="color: ${isSSL ? '#e67e22' : '#ff5c5c'};">${downHeading}</h2>
+        <p>${downMessage}</p>
         <p><strong>URL:</strong> ${monitor.url}</p>
         <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
         ${errorMsg ? `<p><strong>Error:</strong> ${errorMsg}</p>` : ''}
