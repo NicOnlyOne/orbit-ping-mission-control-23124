@@ -106,14 +106,14 @@ export function PricingModal({
           const Icon = category.icon;
           const currentOption = getCurrentOption(category);
           const currentPlanActive = isCurrentPlan(currentOption.planId);
-          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50 border-2 border-astro-green' : ''}`}>
+          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50 border-2 border-status-online' : ''}`}>
                 <CardHeader className="text-center py-8 px-6">
                   <div className="flex items-center justify-center mb-4">
                     <Icon className="h-10 w-10 text-muted-foreground" />
                   </div>
                   <CardTitle className="flex items-center justify-center gap-2 text-xl mb-4">
                     {category.name}
-                    {currentPlanActive && <span className="text-xs bg-astro-green text-starlight-white px-2 py-1 rounded">
+                    {currentPlanActive && <span className="text-xs bg-status-online text-primary-foreground px-2 py-1 rounded">
                         Current
                       </span>}
                   </CardTitle>

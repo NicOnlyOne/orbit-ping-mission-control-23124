@@ -112,9 +112,9 @@ export const PhoneNumberInput = ({
           {isValidating ? (
             <div className="animate-spin">📱</div>
           ) : validationStatus === 'success' ? (
-            <Check className="h-4 w-4 text-green-500" />
+            <Check className="h-4 w-4 text-status-online" />
           ) : validationStatus === 'error' ? (
-            <X className="h-4 w-4 text-red-500" />
+            <X className="h-4 w-4 text-destructive" />
           ) : (
             <Send className="h-4 w-4" />
           )}
@@ -122,7 +122,7 @@ export const PhoneNumberInput = ({
         </Button>
       </div>
       {validationStatus === 'success' && (
-        <p className="text-sm text-green-600">✅ Phone number validated successfully!</p>
+        <p className="text-sm text-status-online">✅ Phone number validated successfully!</p>
       )}
       {validationStatus === 'error' && (
         <p className="text-sm text-destructive">❌ Validation failed. Please check the number and try again.</p>

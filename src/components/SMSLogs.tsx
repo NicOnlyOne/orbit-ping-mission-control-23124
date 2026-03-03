@@ -50,7 +50,7 @@ export const SMSLogs = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'sent':
-        return <Badge variant="default" className="bg-green-500">Sent</Badge>;
+        return <Badge variant="default" className="bg-status-online text-foreground">Sent</Badge>;
       case 'failed':
         return <Badge variant="destructive">Failed</Badge>;
       case 'pending':

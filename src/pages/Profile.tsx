@@ -345,7 +345,7 @@ const Profile = () => {
               <div className="flex flex-col lg:flex-row gap-6">
                 <div className="flex-1 space-y-4">
                   {/* Current Plan Status */}
-                  <div className="p-4 bg-gradient-to-r from-primary/10 to-blue-500/10 border border-primary/20 rounded-lg">
+                  <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Crown className="h-4 w-4 text-primary" />
@@ -386,16 +386,16 @@ const Profile = () => {
 
                   {/* SMS Credits for Enterprise Plans */}
                   {(plan === 'enterprise-100' || plan === 'enterprise-250') && (
-                    <div className="p-4 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-lg">
+                    <div className="p-4 bg-gradient-to-r from-status-online/10 to-secondary/10 border border-status-online/20 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <Smartphone className="h-4 w-4 text-green-500" />
+                          <Smartphone className="h-4 w-4 text-status-online" />
                           <span className="text-sm font-medium">SMS Credits</span>
                         </div>
                         <span className="text-sm text-muted-foreground">850 / 1000</span>
                       </div>
                       <div className="w-full bg-space-dark rounded-full h-2 mb-2">
-                        <div className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                        <div className="bg-gradient-to-r from-status-online to-secondary h-2 rounded-full" style={{ width: '85%' }}></div>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Credits reset on next billing cycle. Unused credits roll over.
@@ -579,16 +579,16 @@ const Profile = () => {
                 {!features.slackNotifications && (
                   <div className="flex items-center gap-2 ml-auto">
                     <span className="text-xs text-muted-foreground">Pro Plan Required</span>
-                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <Crown className="h-4 w-4 text-status-warning" />
                   </div>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {!features.slackNotifications && (
-                <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg">
+                <div className="p-4 bg-gradient-to-r from-secondary/10 to-nebula-blue/10 border border-secondary/20 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <Crown className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <Crown className="h-5 w-5 text-status-warning mt-0.5 flex-shrink-0" />
                     <div>
                       <h4 className="font-medium text-sm mb-1">Upgrade to Pro for Slack Notifications</h4>
                       <p className="text-xs text-muted-foreground mb-3">
@@ -660,12 +660,12 @@ const Profile = () => {
                     Receive alerts in your Slack workspace when your sites go offline
                   </p>
                   {features.slackNotifications && !profile.slack_webhook_url && (
-                    <p className="text-sm text-orange-500">
+                    <p className="text-sm text-status-warning">
                       Please add your Slack Webhook URL above to enable notifications
                     </p>
                   )}
                   {!features.slackNotifications && (
-                    <p className="text-sm text-purple-400">
+                    <p className="text-sm text-secondary">
                       Available on Pro plan and above
                     </p>
                   )}
@@ -857,15 +857,15 @@ const Profile = () => {
                             <p className="font-medium text-sm">SMS Notifications</p>
                             <p className="text-xs text-muted-foreground">Receive alerts via text message</p>
                             {features.smsNotifications && !profile.phone_number && (
-                              <p className="text-xs text-orange-500">Please add phone number above</p>
+                              <p className="text-xs text-status-warning">Please add phone number above</p>
                             )}
                             {!features.smsNotifications && (
-                              <p className="text-xs text-yellow-600">Enterprise plan required</p>
+                              <p className="text-xs text-status-warning">Enterprise plan required</p>
                             )}
                           </div>
                           {!features.smsNotifications && (
                             <div className="ml-2">
-                              <Crown className="h-4 w-4 text-yellow-500" />
+                              <Crown className="h-4 w-4 text-status-warning" />
                             </div>
                           )}
                         </div>
@@ -894,15 +894,15 @@ const Profile = () => {
                             <p className="font-medium text-sm">Slack Notifications</p>
                             <p className="text-xs text-muted-foreground">Receive alerts in Slack</p>
                             {features.slackNotifications && !profile.slack_webhook_url && (
-                              <p className="text-xs text-orange-500">Please configure Slack webhook URL above</p>
+                              <p className="text-xs text-status-warning">Please configure Slack webhook URL above</p>
                             )}
                             {!features.slackNotifications && (
-                              <p className="text-xs text-purple-400">Pro plan required</p>
+                              <p className="text-xs text-secondary">Pro plan required</p>
                             )}
                           </div>
                           {!features.slackNotifications && (
                             <div className="ml-2">
-                              <Crown className="h-4 w-4 text-purple-500" />
+                              <Crown className="h-4 w-4 text-secondary" />
                             </div>
                           )}
                         </div>

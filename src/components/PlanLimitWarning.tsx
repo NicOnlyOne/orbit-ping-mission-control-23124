@@ -30,7 +30,7 @@ export function PlanLimitWarning({ onUpgrade, className }: PlanLimitWarningProps
           size="sm" 
           variant="outline" 
           onClick={onUpgrade}
-          className="border-nebula-blue text-nebula-blue hover:bg-nebula-blue hover:text-white"
+          className="border-nebula-blue text-nebula-blue hover:bg-nebula-blue hover:text-foreground"
         >
           Upgrade to Pro
           <ArrowRight className="h-3 w-3 ml-1" />

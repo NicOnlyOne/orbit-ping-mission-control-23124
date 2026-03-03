@@ -103,7 +103,7 @@ export default function ResetPassword() {
           <>
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto bg-gradient-to-r from-primary to-accent p-3 rounded-full w-16 h-16 flex items-center justify-center">
-              <KeyRound className="h-8 w-8 text-white" />
+              <KeyRound className="h-8 w-8 text-primary-foreground" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-foreground">Set New Access Code</CardTitle>
