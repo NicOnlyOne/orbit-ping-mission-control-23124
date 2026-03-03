@@ -118,7 +118,7 @@ export default function Auth() {
         {[...Array(50)].map((_, i) => (
           <div
             key={i}
-            className="absolute bg-white rounded-full animate-twinkle"
+            className="absolute bg-foreground rounded-full animate-twinkle"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -133,7 +133,7 @@ export default function Auth() {
       <Card className="w-full max-w-md relative z-10 bg-space-medium/80 border-space-light backdrop-blur-sm">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto bg-gradient-to-r from-primary to-accent p-3 rounded-full w-16 h-16 flex items-center justify-center">
-            <Rocket className="h-8 w-8 text-white" />
+            <Rocket className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
             <CardTitle className="text-2xl font-bold text-foreground">OrbitPing Mission Control</CardTitle>

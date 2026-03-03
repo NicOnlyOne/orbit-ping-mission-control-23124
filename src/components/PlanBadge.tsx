@@ -12,31 +12,31 @@ const planConfig = {
     label: "Free",
     icon: Star,
     variant: "secondary" as const,
-    className: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+    className: "bg-muted text-muted-foreground"
   },
   'pro-25': {
     label: "Pro",
     icon: Rocket,
     variant: "default" as const,
-    className: "bg-nebula-blue text-white"
+    className: "bg-nebula-blue text-foreground"
   },
   'pro-50': {
     label: "Pro+",
     icon: Rocket,
     variant: "default" as const,
-    className: "bg-nebula-blue text-white"
+    className: "bg-nebula-blue text-foreground"
   },
   'enterprise-100': {
     label: "Enterprise",
     icon: Crown,
     variant: "default" as const,
-    className: "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+    className: "bg-gradient-to-r from-secondary to-primary text-foreground"
   },
   'enterprise-250': {
     label: "Enterprise+",
     icon: Crown,
     variant: "default" as const,
-    className: "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+    className: "bg-gradient-to-r from-secondary to-primary text-foreground"
   }
 };
 
