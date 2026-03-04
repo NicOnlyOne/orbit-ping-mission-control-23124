@@ -66,11 +66,11 @@ const config: Config = {
           checking: "hsl(var(--status-checking))",
         },
         // Custom: Brand colors from design system
-        "nebula-blue": "hsl(210 100% 55%)",
-        "starlight-white": "hsl(210 40% 98%)",
-        "astro-green": "hsl(142 100% 45%)",
-        "meteor-gray": "hsl(220 15% 45%)",
-        "rocket-red": "hsl(0 84% 55%)",
+        "nebula-blue": "hsl(var(--nebula-blue))",
+        "starlight-white": "hsl(var(--starlight-white))",
+        "astro-green": "hsl(var(--astro-green))",
+        "meteor-gray": "hsl(var(--meteor-gray))",
+        "rocket-red": "hsl(var(--rocket-red))",
         // Custom: sidebar palette
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
