@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/useAdmin";
-import { LogOut, User, ChevronDown, Crown, BarChart3, Shield, Eye, EyeOff } from "lucide-react";
+import { LogOut, User, ChevronDown, Crown, BarChart3, Shield, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "next-themes";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ export function Navigation() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [showPricing, setShowPricing] = useState(false);
   const { highContrast, toggle: toggleContrast } = useHighContrast();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (user) {
@@ -66,6 +68,21 @@ export function Navigation() {
         </Link>
         
         <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                aria-label={theme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{theme === 'dark' ? "Light mode" : "Dark mode"}</TooltipContent>
+          </Tooltip>
+
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
