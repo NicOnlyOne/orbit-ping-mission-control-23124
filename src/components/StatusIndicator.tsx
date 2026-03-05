@@ -64,7 +64,7 @@ export const StatusIndicator = ({ status, label, className }: StatusIndicatorPro
           className={cn("absolute inset-0 w-3 h-3 rounded-full animate-ping", config.color, "opacity-30")}
         />
       </div>
-      <span className="text-sm font-medium text-muted-foreground">
+      <span className="text-body-sm font-token-medium text-muted-foreground">
         {config.icon} {label} - {config.text}
       </span>
     </div>

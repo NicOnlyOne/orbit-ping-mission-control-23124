@@ -84,9 +84,9 @@ export const MissionCard = ({
     )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <CardTitle className="text-card-title font-token-semibold text-foreground flex items-center gap-space-sm">
               🚀 {name}
-              {!enabled && <span className="text-xs bg-muted px-2 py-1 rounded">PAUSED</span>}
+              {!enabled && <span className="text-caption bg-muted px-space-sm py-space-xs rounded-badge">PAUSED</span>}
             </CardTitle>
             <div className="flex items-center gap-1">
               {onToggleEnabled && (
@@ -125,12 +125,12 @@ export const MissionCard = ({
               )}
             </div>
           </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-space-sm">
           <a 
             href={url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-sm text-muted-foreground font-mono hover:text-foreground transition-colors flex items-center gap-1"
+            className="text-body-sm text-muted-foreground font-mono hover:text-foreground transition-colors flex items-center gap-1"
           >
             {url.replace(/^https?:\/\//, '')}
             <ExternalLink className="h-3 w-3" />
@@ -138,31 +138,31 @@ export const MissionCard = ({
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-space-md">
         <StatusIndicator status={status} label="Mission Status" />
         
         {status === 'offline' && errorMessage && (
-          <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive">
-            <p className="font-medium mb-1">⚠️ Error Details</p>
-            <p className="text-xs text-destructive/80">{errorMessage}</p>
+          <div className="p-space-md rounded-card bg-destructive/10 border border-destructive/30 text-body-sm text-destructive">
+            <p className="font-token-medium mb-space-xs">⚠️ Error Details</p>
+            <p className="text-caption text-destructive/80">{errorMessage}</p>
           </div>
         )}
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-space-md">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            <p className="text-caption text-muted-foreground uppercase tracking-wide">
               Mission Uptime
             </p>
-            <p className="text-lg font-semibold text-status-online">
+            <p className="text-body-lg font-token-semibold text-status-online">
               {uptime}
             </p>
           </div>
           
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            <p className="text-caption text-muted-foreground uppercase tracking-wide">
               Response Time
             </p>
-            <p className="text-lg font-semibold text-secondary">
+            <p className="text-body-lg font-token-semibold text-secondary">
               {responseTime}
             </p>
           </div>
@@ -170,16 +170,16 @@ export const MissionCard = ({
         
         {lastChecked && (
           <div className="space-y-1">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-caption text-muted-foreground">
               Last checked: {formatLastChecked(lastChecked).relative}
             </div>
-            <div className="text-xs font-mono text-muted-foreground/70">
+            <div className="text-caption font-mono text-muted-foreground/70">
               {formatLastChecked(lastChecked).absolute}
             </div>
           </div>
         )}
         
-        <div className="flex gap-2">
+        <div className="flex gap-space-sm">
           {onTest ? (
             <Button 
               variant="satellite" 
@@ -218,7 +218,7 @@ export const MissionCard = ({
 
         {/* Settings Panel */}
         {showSettings && (
-          <div className="mt-4 p-4 bg-space-dark rounded-lg border border-space-light space-y-6">
+          <div className="mt-space-md p-space-card bg-space-dark rounded-card border border-space-light space-y-space-lg">
             {onIntervalChange && (
               <MonitoringIntervalSlider
                 value={monitoringInterval}
