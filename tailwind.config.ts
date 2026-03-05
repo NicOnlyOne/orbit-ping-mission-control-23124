@@ -17,6 +17,45 @@ const config: Config = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      fontFamily: {
+        display: "var(--font-family-display)",
+        body: "var(--font-family-body)",
+        mono: "var(--font-family-mono)",
+      },
+      fontSize: {
+        hero: "var(--font-size-hero)",
+        "page-title": "var(--font-size-page-title)",
+        "section-title": "var(--font-size-section-title)",
+        "card-title": "var(--font-size-card-title)",
+        "body-lg": "var(--font-size-body-lg)",
+        body: "var(--font-size-body)",
+        "body-sm": "var(--font-size-body-sm)",
+        caption: "var(--font-size-caption)",
+        stat: "var(--font-size-stat)",
+      },
+      fontWeight: {
+        "token-normal": "var(--font-weight-normal)",
+        "token-medium": "var(--font-weight-medium)",
+        "token-semibold": "var(--font-weight-semibold)",
+        "token-bold": "var(--font-weight-bold)",
+      },
+      lineHeight: {
+        tight: "var(--line-height-tight)",
+        normal: "var(--line-height-normal)",
+        relaxed: "var(--line-height-relaxed)",
+      },
+      spacing: {
+        "space-xs": "var(--space-xs)",
+        "space-sm": "var(--space-sm)",
+        "space-md": "var(--space-md)",
+        "space-lg": "var(--space-lg)",
+        "space-xl": "var(--space-xl)",
+        "space-2xl": "var(--space-2xl)",
+        "space-3xl": "var(--space-3xl)",
+        "space-section": "var(--space-section)",
+        "space-page-x": "var(--space-page-x)",
+        "space-card": "var(--space-card)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -84,9 +123,14 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius-sm)",
+        xl: "var(--radius-xl)",
+        card: "var(--radius-card)",
+        button: "var(--radius-button)",
+        input: "var(--radius-input)",
+        badge: "var(--radius-badge)",
       },
       keyframes: {
         "accordion-down": {
