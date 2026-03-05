@@ -122,8 +122,8 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin text-6xl mb-4">🛰️</div>
-          <p className="text-xl text-muted-foreground">Loading...</p>
+          <div className="animate-spin text-hero mb-space-md">🛰️</div>
+          <p className="text-card-title text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -135,9 +135,9 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <p className="text-xl text-foreground mb-2">Admin Access Required</p>
-          <p className="text-sm text-muted-foreground mb-4">This page is restricted to mission control admins</p>
+          <div className="text-hero mb-space-md">🔒</div>
+          <p className="text-card-title text-foreground mb-space-sm">Admin Access Required</p>
+          <p className="text-body-sm text-muted-foreground mb-space-md">This page is restricted to mission control admins</p>
           <Link to="/">
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -174,14 +174,14 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
       <Navigation />
 
-      <div className="pt-20 px-6">
-        <div className="max-w-7xl mx-auto py-8">
+      <div className="pt-20 px-space-page-x">
+        <div className="max-w-7xl mx-auto py-space-xl">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-space-xl gap-space-md">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-space-md mb-space-sm">
                 <Shield className="h-8 w-8 text-primary" />
-                <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+                <h1 className="text-stat font-token-bold text-foreground">Admin Dashboard</h1>
                 <Badge variant="outline" className="border-primary/30 text-primary">Admin Only</Badge>
               </div>
               <p className="text-muted-foreground">
@@ -203,13 +203,13 @@ const AdminDashboard = () => {
           </div>
 
           {/* Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-xl">
             <Card className="bg-space-medium border-space-light">
-              <CardContent className="p-5">
+              <CardContent className="p-space-card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Users</p>
-                    <p className="text-3xl font-bold text-foreground">{users.length}</p>
+                    <p className="text-body-sm text-muted-foreground">Total Users</p>
+                    <p className="text-stat font-token-bold text-foreground">{users.length}</p>
                   </div>
                   <Users className="h-8 w-8 text-primary" />
                 </div>
@@ -217,11 +217,11 @@ const AdminDashboard = () => {
             </Card>
 
             <Card className="bg-space-medium border-space-light">
-              <CardContent className="p-5">
+              <CardContent className="p-space-card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Monitors</p>
-                    <p className="text-3xl font-bold text-foreground">{totalMonitors}</p>
+                    <p className="text-body-sm text-muted-foreground">Total Monitors</p>
+                    <p className="text-stat font-token-bold text-foreground">{totalMonitors}</p>
                   </div>
                   <Satellite className="h-8 w-8 text-primary" />
                 </div>
@@ -229,11 +229,11 @@ const AdminDashboard = () => {
             </Card>
 
             <Card className="bg-space-medium border-space-light">
-              <CardContent className="p-5">
+              <CardContent className="p-space-card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Active Monitors</p>
-                    <p className="text-3xl font-bold text-foreground">{activeMonitors}</p>
+                    <p className="text-body-sm text-muted-foreground">Active Monitors</p>
+                    <p className="text-stat font-token-bold text-foreground">{activeMonitors}</p>
                   </div>
                   <Activity className="h-8 w-8 text-astro-green" />
                 </div>
@@ -241,13 +241,13 @@ const AdminDashboard = () => {
             </Card>
 
             <Card className="bg-space-medium border-space-light">
-              <CardContent className="p-5">
+              <CardContent className="p-space-card">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Plan Breakdown</p>
+                    <p className="text-body-sm text-muted-foreground">Plan Breakdown</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {Object.entries(planDistribution).map(([plan, count]) => (
-                        <Badge key={plan} variant={getPlanBadgeVariant(plan)} className="text-xs">
+                        <Badge key={plan} variant={getPlanBadgeVariant(plan)} className="text-caption">
                           {getPlanLabel(plan)}: {count}
                         </Badge>
                       ))}
@@ -268,7 +268,7 @@ const AdminDashboard = () => {
                 </CardTitle>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <Select value={planFilter} onValueChange={setPlanFilter}>
-                    <SelectTrigger className="w-full sm:w-[150px] h-9 bg-space-dark border-space-light text-sm">
+                    <SelectTrigger className="w-full sm:w-[150px] h-9 bg-space-dark border-space-light text-body-sm">
                       <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                       <SelectValue placeholder="All Plans" />
                     </SelectTrigger>
@@ -295,8 +295,8 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin text-4xl">🛰️</div>
+                <div className="flex items-center justify-center py-space-2xl">
+                  <div className="animate-spin text-page-title">🛰️</div>
                 </div>
               ) : (
                 <>
@@ -321,16 +321,16 @@ const AdminDashboard = () => {
                                   {u.avatar_url ? (
                                     <AvatarImage src={u.avatar_url} alt={u.full_name || "User"} />
                                   ) : null}
-                                  <AvatarFallback className="bg-muted text-xs">
+                                  <AvatarFallback className="bg-muted text-caption">
                                     <User className="h-3 w-3" />
                                   </AvatarFallback>
                                 </Avatar>
-                                <span className="font-medium text-sm">
+                                <span className="font-token-medium text-body-sm">
                                   {u.full_name || "—"}
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                            <TableCell className="text-body-sm text-muted-foreground">{u.email}</TableCell>
                             <TableCell>
                               <Select
                                 value={u.subscription_plan}
@@ -340,13 +340,13 @@ const AdminDashboard = () => {
                                   }
                                 }}
                               >
-                                <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-xs">
+                                <SelectTrigger className="w-[140px] h-8 bg-space-dark border-space-light text-caption">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {PLANS.map((p) => (
                                     <SelectItem key={p.value} value={p.value}>
-                                      <Badge variant={getPlanBadgeVariant(p.value)} className="text-xs">
+                                      <Badge variant={getPlanBadgeVariant(p.value)} className="text-caption">
                                         {p.label}
                                       </Badge>
                                     </SelectItem>
@@ -354,16 +354,16 @@ const AdminDashboard = () => {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell className="text-center text-sm">{u.monitors_total}</TableCell>
-                            <TableCell className="text-center text-sm">{u.monitors_enabled}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="text-center text-body-sm">{u.monitors_total}</TableCell>
+                            <TableCell className="text-center text-body-sm">{u.monitors_enabled}</TableCell>
+                            <TableCell className="text-body-sm text-muted-foreground">
                               {u.created_at ? format(new Date(u.created_at), "MMM d, yyyy") : "—"}
                             </TableCell>
                           </TableRow>
                         ))}
                         {paginatedUsers.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center py-space-xl text-muted-foreground">
                               {search || planFilter !== "all" ? "No users match your filters" : "No users found"}
                             </TableCell>
                           </TableRow>
@@ -372,11 +372,11 @@ const AdminDashboard = () => {
                     </Table>
                   </div>
                   {filteredUsers.length > PAGE_SIZE && (
-                    <div className="flex items-center justify-between pt-4 border-t border-space-light mt-4">
-                      <p className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between pt-space-md border-t border-space-light mt-space-md">
+                      <p className="text-body-sm text-muted-foreground">
                         Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-space-sm">
                         <Button
                           variant="outline"
                           size="sm"
@@ -385,7 +385,7 @@ const AdminDashboard = () => {
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </Button>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-body-sm text-muted-foreground">
                           Page {safePage} of {totalPages}
                         </span>
                         <Button

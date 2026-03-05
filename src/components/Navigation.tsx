@@ -60,14 +60,14 @@ export function Navigation() {
   return (
     <>
       <header className="fixed top-0 w-full z-50 bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <span className="text-2xl">🚀</span>
-          <span className="text-xl font-bold text-foreground">OrbitPing</span>
-          <Badge variant="secondary" className="ml-2 uppercase tracking-wide">Alpha Test</Badge>
+      <div className="max-w-7xl mx-auto px-space-page-x py-space-md flex justify-between items-center">
+        <Link to="/" className="flex items-center gap-space-sm hover:opacity-80 transition-opacity">
+          <span className="text-section-title">🚀</span>
+          <span className="text-card-title font-token-bold text-foreground">OrbitPing</span>
+          <Badge variant="secondary" className="ml-space-sm uppercase tracking-wide">Alpha Test</Badge>
         </Link>
         
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-space-sm">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -116,13 +116,13 @@ export function Navigation() {
                       <User className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex items-center gap-2">
-                    <span className="hidden sm:inline font-medium">
+                    <div className="flex items-center gap-space-sm">
+                    <span className="hidden sm:inline font-token-medium">
                       {profile?.full_name || user.email}
                     </span>
                     <PlanBadge />
                     {isAdmin && (
-                      <span className="flex items-center gap-1 text-xs font-semibold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-caption font-token-semibold bg-primary/20 text-primary px-1.5 py-0.5 rounded-badge">
                         <Shield className="h-3 w-3" />
                         Admin
                       </span>

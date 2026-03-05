@@ -110,7 +110,7 @@ export default function Auth() {
     <div className="min-h-screen bg-gradient-to-br from-space-dark via-space-medium to-space-light">
       <Navigation />
       
-      <div className="flex items-center justify-center min-h-screen p-4">
+      <div className="flex items-center justify-center min-h-screen p-space-md">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)]" />
       
       {/* Animated stars background */}
@@ -131,12 +131,12 @@ export default function Auth() {
       </div>
 
       <Card className="w-full max-w-md relative z-10 bg-space-medium/80 border-space-light backdrop-blur-sm">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto bg-gradient-to-r from-primary to-accent p-3 rounded-full w-16 h-16 flex items-center justify-center">
+        <CardHeader className="text-center space-y-space-md">
+          <div className="mx-auto bg-gradient-to-r from-primary to-accent p-space-md rounded-badge w-16 h-16 flex items-center justify-center">
             <Rocket className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-foreground">OrbitPing Mission Control</CardTitle>
+            <CardTitle className="text-section-title font-token-bold text-foreground">OrbitPing Mission Control</CardTitle>
             <CardDescription className="text-muted-foreground">
               Ready to launch your monitoring mission?
             </CardDescription>
@@ -144,7 +144,7 @@ export default function Auth() {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="signin" className="space-y-6">
+          <Tabs defaultValue="signin" className="space-y-space-lg">
             <TabsList className="grid w-full grid-cols-2 bg-space-dark">
               <TabsTrigger value="signin" className="data-[state=active]:bg-primary">
                 <Satellite className="h-4 w-4 mr-2" />
@@ -157,8 +157,8 @@ export default function Auth() {
             </TabsList>
 
             <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleSignIn} className="space-y-space-md">
+                <div className="space-y-space-sm">
                   <Label htmlFor="signin-email">Mission ID (Email)</Label>
                   <Input
                     id="signin-email"
@@ -170,7 +170,7 @@ export default function Auth() {
                     className="bg-space-dark border-space-light"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-space-sm">
                   <Label htmlFor="signin-password">Access Code</Label>
                   <div className="relative">
                     <Input
@@ -235,8 +235,8 @@ export default function Auth() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleSignUp} className="space-y-space-md">
+                <div className="space-y-space-sm">
                   <Label htmlFor="signup-name">Commander Name</Label>
                   <Input
                     id="signup-name"
@@ -247,7 +247,7 @@ export default function Auth() {
                     className="bg-space-dark border-space-light"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-space-sm">
                   <Label htmlFor="signup-email">Mission ID (Email)</Label>
                   <Input
                     id="signup-email"
@@ -259,7 +259,7 @@ export default function Auth() {
                     className="bg-space-dark border-space-light"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-space-sm">
                   <Label htmlFor="signup-password">Access Code</Label>
                   <div className="relative">
                     <Input

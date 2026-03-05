@@ -130,8 +130,8 @@ const Index = () => {
   if (loading) {
     return <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin text-6xl mb-4">🛰️</div>
-          <p className="text-xl text-muted-foreground">Initializing Mission Control...</p>
+          <div className="animate-spin text-hero mb-space-md">🛰️</div>
+          <p className="text-card-title text-muted-foreground">Initializing Mission Control...</p>
         </div>
       </div>;
   }
@@ -154,20 +154,20 @@ const Index = () => {
         {/* Fade to transparent at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent" />
         
-        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
+        <div className="relative z-10 max-w-6xl mx-auto px-space-page-x text-center">
           <div className="animate-float">
-            <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent my-0 py-[20px] md:text-8xl">
+            <h1 className="text-hero font-token-bold mb-space-lg bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent my-0 py-[20px] md:text-8xl">
               🚀 OrbitPing
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground mb-4 font-medium">
+            <p className="text-card-title md:text-section-title text-muted-foreground mb-space-md font-token-medium">
               Your website's mission control
             </p>
-            <p className="text-lg md:text-xl text-foreground mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-body-lg md:text-card-title text-foreground mb-space-2xl max-w-3xl mx-auto leading-relaxed">
               "All systems go — unless they're not. We'll let you know."
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-space-md justify-center items-center mb-space-section">
             {user ? <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
                 🚀 Open Mission Control
               </Button> : <Link to="/auth">
@@ -183,17 +183,17 @@ const Index = () => {
           {/* Mission Status Overview */}
           <Card className="bg-space-medium/80 backdrop-blur-sm border-space-light max-w-2xl mx-auto">
             <CardHeader>
-              <h2 className="text-2xl font-semibold leading-none tracking-tight text-center">
+              <h2 className="text-section-title font-token-semibold leading-none tracking-tight text-center">
                 🛰️ Global Mission Status
               </h2>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="space-y-space-md">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
                 <StatusIndicator status="online" label="Primary Systems" />
                 <StatusIndicator status="checking" label="Deep Space Scan" />
                 <StatusIndicator status="online" label="Satellite Network" />
               </div>
-              <div className="text-center text-sm text-muted-foreground pt-4 border-t border-space-light">
+              <div className="text-center text-body-sm text-muted-foreground pt-space-md border-t border-space-light">
                 Monitoring 1,247 active missions across the galaxy
               </div>
             </CardContent>
@@ -202,13 +202,13 @@ const Index = () => {
       </section>}
       
       {/* Mission Control Dashboard */}
-      <section className="py-20 px-6">
+      <section className="py-space-section px-space-page-x">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+          <div className="text-center mb-space-section">
+            <h3 className="text-page-title md:text-[3.25rem] font-token-bold mb-space-lg text-foreground">
               🛰️ Mission Control Center
             </h3>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-card-title text-muted-foreground max-w-3xl mx-auto">
               Monitor your digital assets like a space mission. Get instant alerts when systems go dark, 
               track uptime like orbital trajectories, and maintain mission-critical reliability.
             </p>
@@ -217,22 +217,22 @@ const Index = () => {
           {user ? (/* Registered User - Deploy New Mission */
         <Card className="bg-space-medium border-space-light mb-12 max-w-2xl mx-auto">
               <CardHeader>
-                <CardTitle className="text-center text-xl">
+                <CardTitle className="text-center text-card-title">
                   🚀 Deploy New Mission
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-space-md">
                 <div>
-                  <Label htmlFor="mission-name" className="text-sm font-medium">
+                  <Label htmlFor="mission-name" className="text-body-sm font-token-medium">
                     Mission Name (Optional)
                   </Label>
-                  <Input id="mission-name" placeholder="Alpha Station" value={newMissionName} onChange={e => setNewMissionName(e.target.value)} className="bg-space-dark border-space-light mt-2" />
+                  <Input id="mission-name" placeholder="Alpha Station" value={newMissionName} onChange={e => setNewMissionName(e.target.value)} className="bg-space-dark border-space-light mt-space-sm" />
                 </div>
                 <div>
-                  <Label htmlFor="mission-url" className="text-sm font-medium">
+                  <Label htmlFor="mission-url" className="text-body-sm font-token-medium">
                     Target Coordinates (URL)
                   </Label>
-                  <Input id="mission-url" placeholder="https://your-website.com" value={newMissionUrl} onChange={e => setNewMissionUrl(e.target.value)} className="bg-space-dark border-space-light mt-2" onKeyPress={e => e.key === 'Enter' && handleDeployMission()} />
+                  <Input id="mission-url" placeholder="https://your-website.com" value={newMissionUrl} onChange={e => setNewMissionUrl(e.target.value)} className="bg-space-dark border-space-light mt-space-sm" onKeyPress={e => e.key === 'Enter' && handleDeployMission()} />
                 </div>
                  <Button variant="rocket" className="w-full" disabled={!newMissionUrl.trim() || isDeploying} onClick={handleDeployMission}>
                    {isDeploying ? <>
@@ -245,7 +245,7 @@ const Index = () => {
                  </Button>
                  
                  {/* Plan limit warning */}
-                 <PlanLimitWarning onUpgrade={() => setShowPricing(true)} className="mt-4" />
+                 <PlanLimitWarning onUpgrade={() => setShowPricing(true)} className="mt-space-md" />
                </CardContent>
              </Card>) : (/* Anonymous User - Simple URL Checker */
         <div className="mb-12">
@@ -255,34 +255,34 @@ const Index = () => {
             </div>)}
 
           {/* Active Missions Grid */}
-          {user ? <div className="space-y-6">
+          {user ? <div className="space-y-space-lg">
               <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-bold text-foreground">Active Missions</h3>
-                <div className="text-sm text-muted-foreground">
+                <h3 className="text-section-title font-token-bold text-foreground">Active Missions</h3>
+                <div className="text-body-sm text-muted-foreground">
                   {monitors.length} {monitors.length === 1 ? 'mission' : 'missions'} deployed
                   {plan === 'free' && ` • ${monitors.filter(m => m.enabled).length}/1 active`}
                 </div>
               </div>
               
-              {monitorsLoading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {monitorsLoading ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
                   {[...Array(3)].map((_, i) => <Card key={i} className="bg-space-medium border-space-light animate-pulse">
-                      <CardContent className="p-6">
-                        <div className="h-4 bg-space-light rounded mb-2"></div>
+                      <CardContent className="p-space-card">
+                        <div className="h-4 bg-space-light rounded mb-space-sm"></div>
                         <div className="h-3 bg-space-light rounded w-2/3"></div>
                       </CardContent>
                     </Card>)}
-                </div> : monitors.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div> : monitors.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
                   {monitors.map(monitor => <MissionCard key={monitor.id} name={monitor.name} url={monitor.url} status={monitor.status} uptime={`${monitor.uptime_percentage}%`} responseTime={monitor.response_time ? `${monitor.response_time}ms` : 'N/A'} monitoringInterval={monitor.monitoring_interval} enabled={monitor.enabled} errorMessage={monitor.error_message} onTest={() => testMonitor(monitor.id)} onDelete={() => deleteMonitor(monitor.id)} onToggleEnabled={() => toggleMonitorEnabled(monitor.id)} onIntervalChange={interval => updateMonitorInterval(monitor.id, interval)} lastChecked={monitor.last_checked} />)}
                 </div> : <Card className="bg-space-medium border-space-light">
-                  <CardContent className="p-12 text-center">
-                    <div className="text-6xl mb-4">🛰️</div>
-                    <h3 className="text-xl font-semibold mb-2">No Active Missions</h3>
-                    <p className="text-muted-foreground mb-4">
+                  <CardContent className="p-space-2xl text-center">
+                    <div className="text-hero mb-space-md">🛰️</div>
+                    <h3 className="text-card-title font-token-semibold mb-space-sm">No Active Missions</h3>
+                    <p className="text-muted-foreground mb-space-md">
                       Deploy your first monitoring mission to start tracking your websites and APIs.
                     </p>
                   </CardContent>
                 </Card>}
-            </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
               {[{
             name: "Alpha Station",
             url: "https://example.com",
@@ -305,7 +305,7 @@ const Index = () => {
             </div>}
 
           {/* Features Grid */}
-          {user ? <div></div> : <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-20">
+          {user ? <div></div> : <div className="grid grid-cols-1 md:grid-cols-3 gap-space-xl mt-space-section">
                 <Card className="bg-space-medium border-space-light hover:bg-space-light transition-all duration-300 hover:shadow-[0_0_20px_hsl(18_90%_55%/0.3)]">
                   <CardHeader>
                     <CardTitle className="text-center">
@@ -350,18 +350,18 @@ const Index = () => {
 
       {/* Pricing Section for Anonymous Users */}
       {!user && (
-        <section className="py-20 px-6">
+         <section className="py-space-section px-space-page-x">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            <div className="text-center mb-space-section">
+              <h2 className="text-page-title font-token-bold mb-space-md bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Choose Your Mission Plan
               </h2>
-              <p className="text-xl text-muted-foreground">
+              <p className="text-card-title text-muted-foreground">
                 Scale your monitoring needs with our flexible pricing
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-space-xl">
               {planCategories.map((category, index) => {
                 const Icon = category.icon;
                 const currentOption = getCurrentOption(category);
@@ -381,36 +381,36 @@ const Index = () => {
                       </div>
                     )}
                     
-                    <CardHeader className="text-center py-8 px-6">
-                      <div className="flex items-center justify-center mb-4">
+                    <CardHeader className="text-center py-space-xl px-space-card">
+                      <div className="flex items-center justify-center mb-space-md">
                         <Icon className={`h-12 w-12 ${
                           isPopular 
                             ? 'text-nebula-blue drop-shadow-[0_0_8px_hsl(210_100%_50%/0.6)]' 
                             : 'text-muted-foreground'
                         }`} />
                       </div>
-                      <CardTitle className={`text-xl mb-4 ${
+                      <CardTitle className={`text-card-title mb-space-md ${
                         isPopular 
-                          ? 'text-nebula-blue font-bold' 
+                          ? 'text-nebula-blue font-token-bold' 
                           : ''
                       }`}>{category.name}</CardTitle>
-                      <CardDescription className="text-base mb-6 px-2 py-[10px]">{category.description}</CardDescription>
+                      <CardDescription className="text-body mb-space-lg px-space-sm py-[10px]">{category.description}</CardDescription>
                       
                       {/* Price Display */}
-                      <div className="mb-6 py-[10px]">
-                        <span className={`text-4xl font-bold ${
+                      <div className="mb-space-lg py-[10px]">
+                        <span className={`text-page-title font-token-bold ${
                           isPopular 
                             ? 'text-nebula-blue' 
                             : ''
                         }`}>
                           €{currentOption.price}
                         </span>
-                        <span className="text-muted-foreground text-lg">/month</span>
+                        <span className="text-muted-foreground text-body-lg">/month</span>
                       </div>
 
                       {/* Monitor Selection Dropdown */}
                       {category.options.length > 1 && (
-                        <div className="mb-4">
+                        <div className="mb-space-md">
                           <Select
                             value={selectedOptions[category.id]?.toString()}
                             onValueChange={(value) => setSelectedOptions(prev => ({
@@ -434,11 +434,11 @@ const Index = () => {
                     </CardHeader>
                     
                     <CardContent>
-                      <ul className="space-y-3 mb-6">
+                      <ul className="space-y-space-md mb-space-lg">
                         {category.id !== 'free' && (
-                          <li className="flex items-center gap-2">
+                          <li className="flex items-center gap-space-sm">
                             <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                            <span className="text-sm">{currentOption.monitors} monitors</span>
+                            <span className="text-body-sm">{currentOption.monitors} monitors</span>
                           </li>
                         )}
                         {category.baseFeatures.map((feature, index) => (
@@ -468,17 +468,17 @@ const Index = () => {
               })}
             </div>
 
-            <div className="mt-8 p-4 bg-space-medium rounded-lg">
-              <div className="flex items-center justify-center gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
+            <div className="mt-space-xl p-space-md bg-space-medium rounded-card">
+              <div className="flex items-center justify-center gap-space-xl text-body-sm text-muted-foreground">
+                <div className="flex items-center gap-space-sm">
                   <Mail className="h-4 w-4" />
                   <span>Email alerts</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-space-sm">
                   <MessageSquare className="h-4 w-4" />
                   <span>Slack (Pro)</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-space-sm">
                   <Smartphone className="h-4 w-4" />
                   <span>SMS (Enterprise)</span>
                 </div>
@@ -496,17 +496,17 @@ const Index = () => {
             </div>
           </section>
         ) : (
-          <section className="py-20 px-6 text-center">
+          <section className="py-space-section px-space-page-x text-center">
             <div className="max-w-4xl mx-auto">
-              <h3 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
+              <h3 className="text-page-title md:text-[3.25rem] font-token-bold mb-space-lg text-foreground">
                 Ready for Liftoff?
               </h3>
-              <p className="text-xl text-muted-foreground mb-12">
+              <p className="text-card-title text-muted-foreground mb-space-2xl">
                 Join thousands of mission commanders who trust OrbitPing to keep their digital universe operational.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-space-md justify-center">
                 <Link to="/auth">
-                  <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                  <Button variant="rocket" size="lg" className="text-body-lg px-space-xl py-space-lg">
                     🚀 Start Your Mission
                   </Button>
                 </Link>

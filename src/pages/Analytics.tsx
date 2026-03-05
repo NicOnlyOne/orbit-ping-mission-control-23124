@@ -147,8 +147,8 @@ const Analytics = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin text-6xl mb-4">📊</div>
-          <p className="text-xl text-muted-foreground">Loading analytics...</p>
+          <div className="animate-spin text-hero mb-space-md">📊</div>
+          <p className="text-card-title text-muted-foreground">Loading analytics...</p>
         </div>
       </div>
     );
@@ -158,9 +158,9 @@ const Analytics = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <p className="text-xl text-foreground mb-2">Admin Access Required</p>
-          <p className="text-sm text-muted-foreground">This dashboard is restricted to mission control admins only</p>
+          <div className="text-hero mb-space-md">🔒</div>
+          <p className="text-card-title text-foreground mb-space-sm">Admin Access Required</p>
+          <p className="text-body-sm text-muted-foreground">This dashboard is restricted to mission control admins only</p>
         </div>
       </div>
     );
@@ -185,12 +185,12 @@ const Analytics = () => {
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
       <Navigation />
       
-      <div className="pt-20 px-6">
-        <div className="max-w-7xl mx-auto py-8">
+      <div className="pt-20 px-space-page-x">
+        <div className="max-w-7xl mx-auto py-space-xl">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-space-xl">
             <div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
+              <h1 className="text-page-title font-token-bold text-foreground mb-space-sm">
                 📊 Analytics Dashboard
               </h1>
               <p className="text-muted-foreground">
@@ -198,7 +198,7 @@ const Analytics = () => {
               </p>
             </div>
             
-            <div className="flex items-center gap-4 mt-4 sm:mt-0">
+            <div className="flex items-center gap-space-md mt-space-md sm:mt-0">
               <Select value={timeRange} onValueChange={(value: TimeRange) => setTimeRange(value)}>
                 <SelectTrigger className="w-32 bg-space-medium border-space-light">
                   <Calendar className="h-4 w-4 mr-2" />
@@ -225,11 +225,11 @@ const Analytics = () => {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl">
               {[...Array(4)].map((_, i) => (
                 <Card key={i} className="bg-space-medium border-space-light animate-pulse">
-                  <CardContent className="p-6">
-                    <div className="h-4 bg-space-light rounded mb-2"></div>
+                  <CardContent className="p-space-card">
+                    <div className="h-4 bg-space-light rounded mb-space-sm"></div>
                     <div className="h-8 bg-space-light rounded"></div>
                   </CardContent>
                 </Card>
@@ -238,13 +238,13 @@ const Analytics = () => {
           ) : (
             <>
               {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg mb-space-xl">
                 <Card className="bg-space-medium border-space-light">
-                  <CardContent className="p-6">
+                  <CardContent className="p-space-card">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground font-medium">Total Users</p>
-                        <p className="text-3xl font-bold text-foreground">
+                        <p className="text-body-sm text-muted-foreground font-token-medium">Total Users</p>
+                        <p className="text-stat font-token-bold text-foreground">
                           {analyticsData?.overview.totalUsers.toLocaleString() || 0}
                         </p>
                       </div>
@@ -254,11 +254,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card className="bg-space-medium border-space-light">
-                  <CardContent className="p-6">
+                  <CardContent className="p-space-card">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground font-medium">Active Users</p>
-                        <p className="text-3xl font-bold text-foreground">
+                        <p className="text-body-sm text-muted-foreground font-token-medium">Active Users</p>
+                        <p className="text-stat font-token-bold text-foreground">
                           {analyticsData?.overview.activeUsers.toLocaleString() || 0}
                         </p>
                       </div>
@@ -268,11 +268,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card className="bg-space-medium border-space-light">
-                  <CardContent className="p-6">
+                  <CardContent className="p-space-card">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground font-medium">Total Revenue</p>
-                        <p className="text-3xl font-bold text-foreground">
+                        <p className="text-body-sm text-muted-foreground font-token-medium">Total Revenue</p>
+                        <p className="text-stat font-token-bold text-foreground">
                           ${analyticsData?.overview.totalRevenue.toLocaleString() || 0}
                         </p>
                       </div>
@@ -282,11 +282,11 @@ const Analytics = () => {
                 </Card>
 
                 <Card className="bg-space-medium border-space-light">
-                  <CardContent className="p-6">
+                  <CardContent className="p-space-card">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-muted-foreground font-medium">Avg Order Value</p>
-                        <p className="text-3xl font-bold text-foreground">
+                        <p className="text-body-sm text-muted-foreground font-token-medium">Avg Order Value</p>
+                        <p className="text-stat font-token-bold text-foreground">
                           ${analyticsData?.overview.avgOrderValue.toFixed(0) || 0}
                         </p>
                       </div>
@@ -297,7 +297,7 @@ const Analytics = () => {
               </div>
 
               {/* Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-lg mb-space-xl">
                 {/* User Signups Chart */}
                 <Card className="bg-space-medium border-space-light">
                   <CardHeader>

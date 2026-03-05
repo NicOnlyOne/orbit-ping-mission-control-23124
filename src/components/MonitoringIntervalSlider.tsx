@@ -35,9 +35,9 @@ export const MonitoringIntervalSlider = ({
 
   return (
     <div className={className}>
-      <div className="flex justify-between items-center mb-3">
-        <span className="text-sm text-muted-foreground">Monitor interval</span>
-        <span className="text-sm font-medium text-foreground">
+      <div className="flex justify-between items-center mb-space-md">
+        <span className="text-body-sm text-muted-foreground">Monitor interval</span>
+        <span className="text-body-sm font-token-medium text-foreground">
           {getDisplayValue(value)}
         </span>
       </div>
@@ -51,12 +51,12 @@ export const MonitoringIntervalSlider = ({
         className="w-full"
       />
       
-      <div className="flex justify-between text-xs text-muted-foreground mt-2">
+      <div className="flex justify-between text-caption text-muted-foreground mt-space-sm">
         <span>30s</span>
         <span>60m</span>
       </div>
       
-      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+      <p className="text-caption text-muted-foreground mt-space-sm leading-relaxed">
         Your website can be checked every {getDisplayValue(value).toLowerCase()} so you can get an instant notification in case things go wrong.
       </p>
     </div>

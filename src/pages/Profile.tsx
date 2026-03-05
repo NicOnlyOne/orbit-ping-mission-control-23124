@@ -300,8 +300,8 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin text-6xl mb-4">🛰️</div>
-          <p className="text-xl text-muted-foreground">Loading Profile...</p>
+          <div className="animate-spin text-hero mb-space-md">🛰️</div>
+          <p className="text-card-title text-muted-foreground">Loading Profile...</p>
         </div>
       </div>
     );
@@ -317,49 +317,49 @@ const Profile = () => {
       
       <div className="pt-20">
         <div className="bg-space-dark/80 backdrop-blur-sm border-b border-space-light">
-          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
+          <div className="max-w-4xl mx-auto px-space-page-x py-space-md flex items-center gap-space-md">
             <Link to="/">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-space-sm">
               <User className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">User Profile</h1>
+              <h1 className="text-section-title font-token-bold text-foreground">User Profile</h1>
               <PlanBadge />
             </div>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+        <div className="max-w-4xl mx-auto px-space-page-x py-space-2xl space-y-space-xl">
           {/* Plan and Billing */}
           <Card className="bg-space-medium border-space-light">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-space-sm">
                 <Crown className="h-5 w-5 text-primary" />
                 Plan and billing
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col lg:flex-row gap-6">
-                <div className="flex-1 space-y-4">
+            <CardContent className="space-y-space-lg">
+              <div className="flex flex-col lg:flex-row gap-space-lg">
+                <div className="flex-1 space-y-space-md">
                   {/* Current Plan Status */}
-                  <div className="p-4 bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                  <div className="p-space-md bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-card">
+                    <div className="flex items-center justify-between mb-space-sm">
+                      <div className="flex items-center gap-space-sm">
                         <Crown className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">You're on {plan.charAt(0).toUpperCase() + plan.slice(1).replace('-', ' ')} Plan</span>
+                        <span className="text-body-sm font-token-medium">You're on {plan.charAt(0).toUpperCase() + plan.slice(1).replace('-', ' ')} Plan</span>
                       </div>
                       <PlanBadge />
                     </div>
                   </div>
                   
                   {/* Subscription Dates */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
                     <div>
-                      <p className="text-sm text-muted-foreground">Subscription started</p>
-                      <p className="text-sm font-medium">
+                      <p className="text-body-sm text-muted-foreground">Subscription started</p>
+                      <p className="text-body-sm font-token-medium">
                         {new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -368,10 +368,10 @@ const Profile = () => {
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-body-sm text-muted-foreground">
                         {plan === 'free' ? 'Plan type' : 'Renews'}
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="text-body-sm font-token-medium">
                         {plan === 'free' 
                           ? 'Free forever'
                           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
@@ -386,18 +386,18 @@ const Profile = () => {
 
                   {/* SMS Credits for Enterprise Plans */}
                   {(plan === 'enterprise-100' || plan === 'enterprise-250') && (
-                    <div className="p-4 bg-gradient-to-r from-status-online/10 to-secondary/10 border border-status-online/20 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
+                    <div className="p-space-md bg-gradient-to-r from-status-online/10 to-secondary/10 border border-status-online/20 rounded-card">
+                      <div className="flex items-center justify-between mb-space-sm">
+                        <div className="flex items-center gap-space-sm">
                           <Smartphone className="h-4 w-4 text-status-online" />
-                          <span className="text-sm font-medium">SMS Credits</span>
+                          <span className="text-body-sm font-token-medium">SMS Credits</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">850 / 1000</span>
+                        <span className="text-body-sm text-muted-foreground">850 / 1000</span>
                       </div>
-                      <div className="w-full bg-space-dark rounded-full h-2 mb-2">
-                        <div className="bg-gradient-to-r from-status-online to-secondary h-2 rounded-full" style={{ width: '85%' }}></div>
+                      <div className="w-full bg-space-dark rounded-badge h-2 mb-space-sm">
+                        <div className="bg-gradient-to-r from-status-online to-secondary h-2 rounded-badge" style={{ width: '85%' }}></div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         Credits reset on next billing cycle. Unused credits roll over.
                       </p>
                     </div>
@@ -405,7 +405,7 @@ const Profile = () => {
                 </div>
 
                 {/* Manage Section - Always Visible */}
-                <div className="flex flex-col gap-3 lg:w-48">
+                <div className="flex flex-col gap-space-md lg:w-48">
                   <Button variant="outline" disabled className="w-full">
                     Manage payment
                   </Button>
@@ -421,17 +421,17 @@ const Profile = () => {
           {isAdmin && (
             <Card className="bg-space-medium border-primary/30 border-dashed">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-space-sm">
                   <Shield className="h-5 w-5 text-primary" />
                   Admin: Plan Simulator
-                  <span className="text-xs font-normal bg-primary/20 text-primary px-2 py-0.5 rounded-full ml-auto">Admin Only</span>
+                  <span className="text-caption font-token-normal bg-primary/20 text-primary px-space-sm py-0.5 rounded-badge ml-auto">Admin Only</span>
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
+            </CardHeader>
+              <CardContent className="space-y-space-md">
+                <p className="text-body-sm text-muted-foreground">
                   Switch between plans to test features as different subscription tiers. This does not affect billing.
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-space-sm">
                   {([
                     { value: 'free', label: 'Free' },
                     { value: 'pro-25', label: 'Pro 25' },
@@ -470,13 +470,13 @@ const Profile = () => {
 
           <Card className="bg-space-medium border-space-light">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-space-sm">
                 <User className="h-5 w-5 text-primary" />
                 Profile Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex flex-col md:flex-row md:items-start gap-8">
+            <CardContent className="space-y-space-lg">
+              <div className="flex flex-col md:flex-row md:items-start gap-space-xl">
                 {/* Avatar Section */}
                 <div className="flex-shrink-0">
                   <AvatarUpload
@@ -487,9 +487,9 @@ const Profile = () => {
                 </div>
 
                 {/* Profile Fields */}
-                <div className="flex-1 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
+                <div className="flex-1 space-y-space-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+                    <div className="space-y-space-sm">
                       <Label htmlFor="fullName">Full Name</Label>
                       <Input
                         id="fullName"
@@ -500,9 +500,9 @@ const Profile = () => {
                       />
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-space-sm">
                       <Label htmlFor="email">Email Address</Label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-space-sm">
                         <Input
                           id="email"
                           type="email"
@@ -518,21 +518,21 @@ const Profile = () => {
                         )}
                       </div>
                       {profile.email !== user.email && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-body-sm text-muted-foreground">
                           Email change requires confirmation
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-space-sm">
                     <PhoneNumberInput
                       value={profile.phone_number}
                       onChange={(phone) => setProfile(prev => ({ ...prev, phone_number: phone }))}
                       label="Phone Number"
                       placeholder="Enter your phone number"
                     />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-body-sm text-muted-foreground">
                       Used for SMS alerts when your monitored sites go offline
                     </p>
                   </div>
