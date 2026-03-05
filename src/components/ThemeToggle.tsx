@@ -6,6 +6,7 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   const cycleTheme = () => {
+    document.documentElement.classList.add('transitioning');
     if (theme === 'light') {
       setTheme('dark');
     } else if (theme === 'dark') {
@@ -13,6 +14,7 @@ export function ThemeToggle() {
     } else {
       setTheme('light');
     }
+    setTimeout(() => document.documentElement.classList.remove('transitioning'), 500);
   };
 
   const getIcon = () => {
