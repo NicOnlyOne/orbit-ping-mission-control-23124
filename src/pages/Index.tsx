@@ -9,6 +9,7 @@ import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
 import { SMSForm } from "@/components/SMSForm";
 import { SMSLogs } from "@/components/SMSLogs";
 import { Navigation } from "@/components/Navigation";
+import { Footer } from "@/components/Footer";
 import { SlackTestButton } from "@/components/SlackTestButton";
 import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 import { PlanLimitWarning } from "@/components/PlanLimitWarning";
