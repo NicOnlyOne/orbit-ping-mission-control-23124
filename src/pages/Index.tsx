@@ -516,6 +516,7 @@ const Index = () => {
         )}     
       </div>
       
+      <Footer />
       <PricingModal open={showPricing} onOpenChange={setShowPricing} />
     </div>;
 };

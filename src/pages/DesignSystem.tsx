@@ -100,9 +100,9 @@ const DesignSystem = () => {
         <section className="mb-space-section">
           <h2 className="text-section-title font-token-semibold text-foreground mb-space-lg">Status Indicators</h2>
           <div className="flex flex-wrap gap-space-lg items-center">
-            <StatusIndicator status="up" showLabel />
-            <StatusIndicator status="down" showLabel />
-            <StatusIndicator status="pending" showLabel />
+            <div className="flex items-center gap-space-xs"><StatusIndicator status="up" /> <span className="text-body-sm">Up</span></div>
+            <div className="flex items-center gap-space-xs"><StatusIndicator status="down" /> <span className="text-body-sm">Down</span></div>
+            <div className="flex items-center gap-space-xs"><StatusIndicator status="pending" /> <span className="text-body-sm">Pending</span></div>
           </div>
         </section>
 
