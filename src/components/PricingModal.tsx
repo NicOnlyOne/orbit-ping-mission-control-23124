@@ -182,14 +182,20 @@ export function PricingModal({
                   
                   <Button 
                     className="w-full" 
-                    variant={currentPlanActive ? "outline" : "default"} 
-                    disabled={currentPlanActive || (!canChange && !currentPlanActive)} 
-                    onClick={() => handlePlanChange(currentOption.planId)}
+                    variant={currentPlanActive ? "outline" : canChange ? "default" : "outline"} 
+                    disabled={currentPlanActive} 
+                    onClick={() => {
+                      if (!canChange) {
+                        setNotifyPlan(category.name);
+                      } else {
+                        handlePlanChange(currentOption.planId);
+                      }
+                    }}
                   >
                     {currentPlanActive 
                       ? 'Current Plan' 
                       : !canChange 
-                        ? 'Coming Soon'
+                        ? <><Bell className="h-3.5 w-3.5 mr-2" /> Notify Me</>
                         : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
                   </Button>
                 </CardContent>
