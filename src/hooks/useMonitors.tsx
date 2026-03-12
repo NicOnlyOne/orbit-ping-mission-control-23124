@@ -232,7 +232,7 @@ export function useMonitors() {
   useEffect(() => {
     if (!user || monitors.length === 0) return;
 
-    const timers: NodeJS.Timeout[] = [];
+    const timers: ReturnType<typeof setInterval>[] = [];
 
     monitors.forEach((m) => {
       // Only set up timers for enabled monitors
