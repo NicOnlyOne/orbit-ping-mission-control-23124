@@ -97,6 +97,27 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          plan_interest: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          plan_interest: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          plan_interest?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
