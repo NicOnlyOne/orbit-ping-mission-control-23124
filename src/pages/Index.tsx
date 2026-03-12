@@ -537,6 +537,11 @@ const Index = () => {
       
       <Footer />
       <PricingModal open={showPricing} onOpenChange={setShowPricing} />
+      <NotifyMeDialog 
+        open={!!notifyPlan} 
+        onOpenChange={(open) => !open && setNotifyPlan(null)} 
+        planName={notifyPlan || ""} 
+      />
     </div>;
 };
 export default Index;
