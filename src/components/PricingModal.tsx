@@ -220,5 +220,10 @@ export function PricingModal({
           </div>
         </div>
       </DialogContent>
+      <NotifyMeDialog 
+        open={!!notifyPlan} 
+        onOpenChange={(open) => !open && setNotifyPlan(null)} 
+        planName={notifyPlan || ""} 
+      />
     </Dialog>;
 }
