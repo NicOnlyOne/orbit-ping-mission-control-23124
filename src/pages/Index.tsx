@@ -474,10 +474,10 @@ const Index = () => {
                       ) : (
                         <Button 
                           variant="outline"
-                          disabled
-                          className="w-full opacity-50 cursor-not-allowed"
+                          className="w-full border-nebula-blue/30 text-nebula-blue hover:bg-nebula-blue/10 hover:border-nebula-blue/50 transition-all duration-300"
+                          onClick={() => setNotifyPlan(category.name)}
                         >
-                          <Lock className="h-3.5 w-3.5 mr-2" />
+                          <Bell className="h-3.5 w-3.5 mr-2" />
                           Notify Me
                         </Button>
                       )}
