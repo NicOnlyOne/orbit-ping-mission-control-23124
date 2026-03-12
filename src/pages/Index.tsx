@@ -14,19 +14,21 @@ import { SlackTestButton } from "@/components/SlackTestButton";
 import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 import { PlanLimitWarning } from "@/components/PlanLimitWarning";
 import { PricingModal } from "@/components/PricingModal";
+import { NotifyMeDialog } from "@/components/NotifyMeDialog";
 import heroImage from "@/assets/hero-mission-control.jpg";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone, Lock } from "lucide-react";
+import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone, Lock, Bell } from "lucide-react";
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
   const [newMissionName, setNewMissionName] = useState("");
   const [isDeploying, setIsDeploying] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
+  const [notifyPlan, setNotifyPlan] = useState<string | null>(null);
   
   // State for dropdown selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
