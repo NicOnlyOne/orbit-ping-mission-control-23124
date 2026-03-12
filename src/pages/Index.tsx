@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone } from "lucide-react";
+import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone, Lock } from "lucide-react";
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
