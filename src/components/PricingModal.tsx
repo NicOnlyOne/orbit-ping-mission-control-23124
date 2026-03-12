@@ -64,11 +64,12 @@ export function PricingModal({
   } = useSubscription();
   const { isAdmin } = useAdmin();
 
-  // State for dropdown selections
+  // State for dropdown selections and notify dialog
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
     pro: 25,
     enterprise: 100
   });
+  const [notifyPlan, setNotifyPlan] = useState<string | null>(null);
 
   // Plan hierarchy for determining upgrade vs downgrade
   const planHierarchy = {
