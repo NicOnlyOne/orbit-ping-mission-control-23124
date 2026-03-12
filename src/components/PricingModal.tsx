@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown } from "lucide-react";
+import { useAdmin } from "@/hooks/useAdmin";
+import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown, Construction } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 interface PricingModalProps {
@@ -60,6 +61,7 @@ export function PricingModal({
     plan: currentPlan,
     upgradePlan
   } = useSubscription();
+  const { isAdmin } = useAdmin();
 
   // State for dropdown selections
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
@@ -80,6 +82,10 @@ export function PricingModal({
   };
   const handlePlanChange = async (planId: string) => {
     if (planId === currentPlan) return;
+    if (!isAdmin) {
+      toast.info('Plan upgrades are coming soon! Stay tuned.');
+      return;
+    }
     try {
       await upgradePlan(planId as any);
       const action = isUpgrade(planId) ? 'upgraded' : 'changed';
@@ -100,13 +106,25 @@ export function PricingModal({
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">Choose Your Mission Plan</DialogTitle>
         </DialogHeader>
+
+        {/* Beta Banner */}
+        {!isAdmin && (
+          <div className="flex items-center gap-3 rounded-card border border-nebula-blue/30 bg-nebula-blue/5 px-space-md py-space-sm text-sm text-muted-foreground">
+            <Construction className="h-4 w-4 text-nebula-blue flex-shrink-0" />
+            <span>
+              OrbitPing is currently in <strong className="text-foreground">beta</strong>. All users are on the Free plan for now — paid plans are coming soon!
+            </span>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
           {planCategories.map(category => {
           const Icon = category.icon;
           const currentOption = getCurrentOption(category);
           const currentPlanActive = isCurrentPlan(currentOption.planId);
-          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50 border-2 border-status-online' : ''}`}>
+          const isFree = category.id === 'free';
+          const canChange = isAdmin || isFree;
+          return <Card key={category.id} className={`relative ${currentPlanActive ? 'bg-muted/50 border-2 border-status-online' : ''} ${!canChange && !currentPlanActive ? 'opacity-60' : ''}`}>
                 <CardHeader className="text-center py-8 px-6">
                   <div className="flex items-center justify-center mb-4">
                     <Icon className="h-10 w-10 text-muted-foreground" />
@@ -115,6 +133,9 @@ export function PricingModal({
                     {category.name}
                     {currentPlanActive && <span className="text-xs bg-status-online text-primary-foreground px-2 py-1 rounded">
                         Current
+                      </span>}
+                    {!isFree && !isAdmin && <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                        Coming soon
                       </span>}
                   </CardTitle>
                   <CardDescription className="text-base mb-6 px-2 py-[10px]">{category.description}</CardDescription>
@@ -157,8 +178,17 @@ export function PricingModal({
                       </li>)}
                   </ul>
                   
-                  <Button className="w-full" variant={currentPlanActive ? "outline" : "default"} disabled={currentPlanActive} onClick={() => handlePlanChange(currentOption.planId)}>
-                    {currentPlanActive ? 'Current Plan' : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
+                  <Button 
+                    className="w-full" 
+                    variant={currentPlanActive ? "outline" : "default"} 
+                    disabled={currentPlanActive || (!canChange && !currentPlanActive)} 
+                    onClick={() => handlePlanChange(currentOption.planId)}
+                  >
+                    {currentPlanActive 
+                      ? 'Current Plan' 
+                      : !canChange 
+                        ? 'Coming Soon'
+                        : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
                   </Button>
                 </CardContent>
               </Card>;
