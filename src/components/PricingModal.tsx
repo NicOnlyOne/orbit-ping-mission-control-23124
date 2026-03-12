@@ -2,9 +2,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NotifyMeDialog } from "@/components/NotifyMeDialog";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/useAdmin";
-import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown, Construction } from "lucide-react";
+import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown, Construction, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 interface PricingModalProps {
@@ -63,11 +64,12 @@ export function PricingModal({
   } = useSubscription();
   const { isAdmin } = useAdmin();
 
-  // State for dropdown selections
+  // State for dropdown selections and notify dialog
   const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
     pro: 25,
     enterprise: 100
   });
+  const [notifyPlan, setNotifyPlan] = useState<string | null>(null);
 
   // Plan hierarchy for determining upgrade vs downgrade
   const planHierarchy = {
@@ -180,14 +182,20 @@ export function PricingModal({
                   
                   <Button 
                     className="w-full" 
-                    variant={currentPlanActive ? "outline" : "default"} 
-                    disabled={currentPlanActive || (!canChange && !currentPlanActive)} 
-                    onClick={() => handlePlanChange(currentOption.planId)}
+                    variant={currentPlanActive ? "outline" : canChange ? "default" : "outline"} 
+                    disabled={currentPlanActive} 
+                    onClick={() => {
+                      if (!canChange) {
+                        setNotifyPlan(category.name);
+                      } else {
+                        handlePlanChange(currentOption.planId);
+                      }
+                    }}
                   >
                     {currentPlanActive 
                       ? 'Current Plan' 
                       : !canChange 
-                        ? 'Coming Soon'
+                        ? <><Bell className="h-3.5 w-3.5 mr-2" /> Notify Me</>
                         : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
                   </Button>
                 </CardContent>
@@ -212,5 +220,10 @@ export function PricingModal({
           </div>
         </div>
       </DialogContent>
+      <NotifyMeDialog 
+        open={!!notifyPlan} 
+        onOpenChange={(open) => !open && setNotifyPlan(null)} 
+        planName={notifyPlan || ""} 
+      />
     </Dialog>;
 }
