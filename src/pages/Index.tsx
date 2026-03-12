@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
-import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone } from "lucide-react";
+import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone, Lock } from "lucide-react";
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
@@ -366,18 +366,31 @@ const Index = () => {
               {planCategories.map((category, index) => {
                 const Icon = category.icon;
                 const currentOption = getCurrentOption(category);
-                const isPopular = index === 1; // Pro plan is most popular
+                const isFree = category.id === 'free';
+                const isPaid = !isFree;
+                const isPopular = index === 1;
 
                 return (
                   <Card key={category.id} className={`relative transition-all duration-300 ${
-                    isPopular 
-                      ? 'bg-gradient-to-br from-space-medium via-space-dark to-space-medium border-2 border-nebula-blue shadow-[0_0_40px_hsl(210_100%_50%/0.3)] scale-105 hover:scale-110 hover:shadow-[0_0_60px_hsl(210_100%_50%/0.4)]' 
-                      : 'bg-space-medium border-space-light hover:border-space-medium hover:shadow-lg'
+                    isFree
+                      ? 'bg-space-medium border-2 border-astro-green/40 shadow-[0_0_30px_hsl(145_60%_50%/0.15)] hover:shadow-[0_0_40px_hsl(145_60%_50%/0.25)] hover:scale-[1.02]'
+                      : 'bg-space-medium/50 border-space-light grayscale-[40%] opacity-70 cursor-default'
                   }`}>
-                    {isPopular && (
-                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                        <span className="bg-gradient-to-r from-nebula-blue to-primary text-starlight-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
-                          ⭐ Most Popular
+                    {/* Beta ribbon for paid plans */}
+                    {isPaid && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                        <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-medium border border-border flex items-center gap-1.5">
+                          <Lock className="h-3 w-3" />
+                          Coming in v1.0
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Available now badge for free */}
+                    {isFree && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                        <span className="bg-gradient-to-r from-astro-green to-astro-green/80 text-starlight-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                          ✦ Available Now
                         </span>
                       </div>
                     )}
@@ -385,28 +398,24 @@ const Index = () => {
                     <CardHeader className="text-center py-space-xl px-space-card">
                       <div className="flex items-center justify-center mb-space-md">
                         <Icon className={`h-12 w-12 ${
-                          isPopular 
-                            ? 'text-nebula-blue drop-shadow-[0_0_8px_hsl(210_100%_50%/0.6)]' 
-                            : 'text-muted-foreground'
+                          isFree 
+                            ? 'text-astro-green drop-shadow-[0_0_8px_hsl(145_60%_50%/0.5)]' 
+                            : 'text-muted-foreground/50'
                         }`} />
                       </div>
                       <CardTitle className={`text-card-title mb-space-md ${
-                        isPopular 
-                          ? 'text-nebula-blue font-token-bold' 
-                          : ''
+                        isFree ? 'text-astro-green font-token-bold' : 'text-muted-foreground'
                       }`}>{category.name}</CardTitle>
-                      <CardDescription className="text-body mb-space-lg px-space-sm py-[10px]">{category.description}</CardDescription>
+                      <CardDescription className={`text-body mb-space-lg px-space-sm py-[10px] ${isPaid ? 'text-muted-foreground/60' : ''}`}>{category.description}</CardDescription>
                       
                       {/* Price Display */}
                       <div className="mb-space-lg py-[10px]">
                         <span className={`text-page-title font-token-bold ${
-                          isPopular 
-                            ? 'text-nebula-blue' 
-                            : ''
+                          isFree ? 'text-astro-green' : 'text-muted-foreground/50'
                         }`}>
                           €{currentOption.price}
                         </span>
-                        <span className="text-muted-foreground text-body-lg">/month</span>
+                        <span className="text-muted-foreground/50 text-body-lg">/month</span>
                       </div>
 
                       {/* Monitor Selection Dropdown */}
@@ -418,8 +427,9 @@ const Index = () => {
                               ...prev,
                               [category.id]: parseInt(value)
                             }))}
+                            disabled={isPaid}
                           >
-                            <SelectTrigger className="w-full bg-background border border-muted">
+                            <SelectTrigger className={`w-full bg-background border border-muted ${isPaid ? 'opacity-50' : ''}`}>
                               <SelectValue placeholder="Select monitors" />
                             </SelectTrigger>
                             <SelectContent>
@@ -438,31 +448,37 @@ const Index = () => {
                       <ul className="space-y-space-md mb-space-lg">
                         {category.id !== 'free' && (
                           <li className="flex items-center gap-space-sm">
-                            <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                            <span className="text-body-sm">{currentOption.monitors} monitors</span>
+                            <Check className={`h-4 w-4 flex-shrink-0 ${isPaid ? 'text-muted-foreground/40' : 'text-astro-green'}`} />
+                            <span className={`text-body-sm ${isPaid ? 'text-muted-foreground/60' : ''}`}>{currentOption.monitors} monitors</span>
                           </li>
                         )}
-                        {category.baseFeatures.map((feature, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <Check className="h-4 w-4 text-astro-green flex-shrink-0" />
-                            <span className="text-sm">{feature}</span>
+                        {category.baseFeatures.map((feature, idx) => (
+                          <li key={idx} className="flex items-center gap-2">
+                            <Check className={`h-4 w-4 flex-shrink-0 ${isPaid ? 'text-muted-foreground/40' : 'text-astro-green'}`} />
+                            <span className={`text-sm ${isPaid ? 'text-muted-foreground/60' : ''}`}>{feature}</span>
                           </li>
                         ))}
                       </ul>
                       
-                      <Link to="/auth">
+                      {isFree ? (
+                        <Link to="/auth">
+                          <Button 
+                            variant="default"
+                            className="w-full bg-gradient-to-r from-astro-green to-astro-green/80 hover:from-astro-green/90 hover:to-astro-green/70 text-starlight-white font-bold border-0 hover:shadow-[0_0_20px_hsl(145_60%_50%/0.4)] hover:scale-105 transform transition-all duration-300"
+                          >
+                            🚀 Get Started Free
+                          </Button>
+                        </Link>
+                      ) : (
                         <Button 
-                          variant={isPopular ? "default" : "outline"} 
-                          className={`w-full transition-all duration-300 ${
-                            isPopular 
-                              ? 'bg-gradient-to-r from-nebula-blue to-primary hover:from-nebula-blue/80 hover:to-primary/80 text-starlight-white font-bold border-2 border-nebula-blue/50 hover:border-nebula-blue hover:shadow-[0_0_20px_hsl(210_100%_50%/0.5)] hover:scale-105 transform' 
-                              : ''
-                          }`}
+                          variant="outline"
+                          disabled
+                          className="w-full opacity-50 cursor-not-allowed"
                         >
-                          {isPopular && <span className="mr-2">🚀</span>}
-                          Get Started{category.id === 'free' ? ' Free' : ''}
+                          <Lock className="h-3.5 w-3.5 mr-2" />
+                          Notify Me
                         </Button>
-                      </Link>
+                      )}
                     </CardContent>
                   </Card>
                 );
