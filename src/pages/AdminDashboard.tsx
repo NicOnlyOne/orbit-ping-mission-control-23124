@@ -404,6 +404,11 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Waitlist Signups */}
+          <div className="mt-space-xl">
+            <AdminWaitlist />
+          </div>
         </div>
       </div>
 
