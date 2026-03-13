@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { AdminWaitlist } from "@/components/AdminWaitlist";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -403,6 +404,11 @@ const AdminDashboard = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Waitlist Signups */}
+          <div className="mt-space-xl">
+            <AdminWaitlist />
+          </div>
         </div>
       </div>
 
