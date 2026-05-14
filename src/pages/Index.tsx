@@ -149,58 +149,91 @@ const Index = () => {
       
       {/* Hero Section */}
       {user ? <section></section> : <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20" style={{
+        {/* Background image */}
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-[0.12]" style={{
         backgroundImage: `url(${heroImage})`
       }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-space-deep/80 via-space-dark/60 to-space-medium/40" />
-        
+        <div className="absolute inset-0 bg-gradient-to-br from-space-deep/85 via-space-dark/70 to-space-medium/40" />
+
+        {/* Ambient glows */}
+        <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[120px] bg-secondary/10" />
+        <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[100px] bg-primary/10" />
+
+        {/* Subtle dot grid */}
+        <div className="pointer-events-none absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'radial-gradient(hsl(var(--muted-foreground)) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
         {/* Fade to transparent at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background via-background/80 to-transparent" />
-        
+
         <div className="relative z-10 max-w-6xl mx-auto px-space-page-x text-center">
-          <div className="animate-float">
-            <h1 className="text-hero font-token-bold mb-space-lg bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent my-0 py-[20px] md:text-8xl">
-              🚀 OrbitPing
+          {/* Brand mark */}
+          <div className="flex flex-col items-center gap-space-lg mb-space-xl">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full group-hover:bg-primary/50 transition-all duration-500" />
+              <div className="relative text-6xl md:text-7xl animate-float drop-shadow-[0_0_20px_hsl(var(--primary)/0.5)]">🚀</div>
+            </div>
+
+            <h1 className="text-hero md:text-8xl font-token-bold tracking-tighter bg-gradient-to-r from-secondary via-nebula-blue to-accent bg-clip-text text-transparent leading-[1.05] py-2">
+              OrbitPing
             </h1>
-            <p className="text-card-title md:text-section-title text-muted-foreground mb-space-md font-token-medium">
-              Your website's mission control
-            </p>
-            <p className="text-body-lg md:text-card-title text-foreground mb-space-2xl max-w-3xl mx-auto leading-relaxed">
-              "All systems go — unless they're not. We'll let you know."
-            </p>
+
+            <div className="flex flex-col items-center gap-space-sm">
+              <span className="font-mono text-caption md:text-body-sm font-token-bold tracking-[0.4em] uppercase text-muted-foreground">
+                Your website's mission control
+              </span>
+              <p className="text-body-lg md:text-card-title font-light italic text-foreground/80 max-w-xl">
+                "All systems go — unless they're not. We'll let you know."
+              </p>
+            </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-space-md justify-center items-center mb-space-section">
-            {user ? <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+            {user ? <Button variant="rocket" size="lg" className="text-lg px-8 py-6 shadow-[0_0_30px_hsl(var(--primary)/0.35)]">
                 🚀 Open Mission Control
               </Button> : <Link to="/auth">
-                <Button variant="rocket" size="lg" className="text-lg px-8 py-6">
+                <Button variant="rocket" size="lg" className="text-lg px-8 py-6 shadow-[0_0_30px_hsl(var(--primary)/0.35)]">
                   🚀 Launch Mission Control
                 </Button>
               </Link>}
-            <Button variant="mission" size="lg" className="text-lg px-8 py-6">
+            <Button variant="command" size="lg" className="text-lg px-8 py-6 border-secondary/30 text-secondary hover:text-secondary">
               📊 View Live Demo
             </Button>
           </div>
-          
-          {/* Mission Status Overview */}
-          <Card className="bg-space-medium/80 backdrop-blur-sm border-space-light max-w-2xl mx-auto">
-            <CardHeader>
-              <h2 className="text-section-title font-token-semibold leading-none tracking-tight text-center">
-                🛰️ Global Mission Status
-              </h2>
-            </CardHeader>
-            <CardContent className="space-y-space-md">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
-                <StatusIndicator status="online" label="Primary Systems" />
-                <StatusIndicator status="checking" label="Deep Space Scan" />
-                <StatusIndicator status="online" label="Satellite Network" />
-              </div>
-              <div className="text-center text-body-sm text-muted-foreground pt-space-md border-t border-space-light">
-                Monitoring 1,247 active missions across the galaxy
-              </div>
-            </CardContent>
-          </Card>
+
+          {/* Mission Status Overview — premium HUD */}
+          <div className="relative max-w-3xl mx-auto">
+            <div className="absolute -inset-0.5 rounded-2xl bg-gradient-to-r from-secondary/20 via-muted/20 to-accent/20 blur-sm opacity-60" />
+            <Card className="relative bg-card/70 backdrop-blur-xl border-border/40 overflow-hidden rounded-2xl">
+              {/* Scan beam */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/60 to-transparent animate-[scan_4s_linear_infinite]" />
+
+              <CardHeader className="border-b border-border/40 pb-space-md">
+                <div className="flex items-center justify-between gap-space-md">
+                  <div className="flex items-center gap-space-sm">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-online opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-status-online" />
+                    </span>
+                    <h2 className="font-mono text-caption md:text-body-sm font-token-bold uppercase tracking-[0.25em] text-muted-foreground">
+                      Global Mission Status
+                    </h2>
+                  </div>
+                  <span className="font-mono text-caption text-muted-foreground/70 hidden sm:inline">Sector 7-G // Live Feed</span>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-space-md pt-space-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-space-lg">
+                  <StatusIndicator status="online" label="Primary Systems" />
+                  <StatusIndicator status="checking" label="Deep Space Scan" />
+                  <StatusIndicator status="online" label="Satellite Network" />
+                </div>
+                <div className="text-center font-mono text-caption uppercase tracking-widest text-muted-foreground pt-space-md border-t border-border/40">
+                  Monitoring <span className="text-foreground font-token-bold">1,247</span> active missions across the galaxy
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>}
       
