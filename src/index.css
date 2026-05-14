@@ -355,6 +355,11 @@ All colors MUST be HSL.
     100% { opacity: 0.4; }
   }
   
+  @keyframes scan {
+    0% { transform: translateY(0); opacity: 0.8; }
+    100% { transform: translateY(320px); opacity: 0; }
+  }
+
   @keyframes starfield-medium {
     0% { opacity: 0.2; }
     33% { opacity: 0.6; }
