@@ -96,6 +96,7 @@ export const MissionCard = ({
                       variant="ghost"
                       size="sm"
                       onClick={onToggleEnabled}
+                      aria-label={enabled ? `Pause monitoring for ${name}` : `Resume monitoring for ${name}`}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       {enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -113,6 +114,7 @@ export const MissionCard = ({
                       variant="ghost"
                       size="sm"
                       onClick={onDelete}
+                      aria-label={`Delete mission ${name}`}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -210,6 +212,8 @@ export const MissionCard = ({
             size="sm" 
             className="flex-1"
             onClick={() => setShowSettings(!showSettings)}
+            aria-label={`Settings for ${name}`}
+            aria-expanded={showSettings}
           >
             <Settings className="h-4 w-4 mr-2" />
             Settings
