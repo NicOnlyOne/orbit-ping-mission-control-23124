@@ -83,12 +83,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_plan: newPlan
-        } as any)
-        .eq('id', user.id);
+      // Plan changes go through the admin-only server function
+      const { error } = await supabase.functions.invoke('admin-update-plan', {
+        body: { userId: user.id, plan: newPlan },
+      });
 
       if (error) throw error;
       

@@ -73,11 +73,17 @@ export function AdminWaitlist() {
     return acc;
   }, {} as Record<string, number>);
 
+  const csvCell = (v: string) => {
+    let s = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
+
   const exportCsv = () => {
     const csv = [
       "Email,Plan Interest,Signed Up",
       ...filtered.map((e) =>
-        `${e.email},${e.plan_interest},${e.created_at ? format(new Date(e.created_at), "yyyy-MM-dd HH:mm") : ""}`
+        [e.email, e.plan_interest, e.created_at ? format(new Date(e.created_at), "yyyy-MM-dd HH:mm") : ""].map(csvCell).join(",")
       ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });

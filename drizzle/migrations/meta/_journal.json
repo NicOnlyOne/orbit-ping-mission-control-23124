@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795255355699,
+      "tag": "0000_harden_plans_monitors_waitlist",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795255376526,
+      "tag": "0001_waitlist_plan_case_insensitive",
+      "breakpoints": true
+    }
+  ]
+}

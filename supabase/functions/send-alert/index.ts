@@ -75,10 +75,21 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Internal-only endpoint: callers must present the service role key.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { "Content-Type": "application/json", ...corsHeaders }
+    });
+  }
+
   try {
-    const { monitorId, status, url, errorMessage, responseTime }: AlertRequest = await req.json();
+    const { monitorId, status, url: _url, errorMessage: rawError, responseTime }: AlertRequest = await req.json();
+    const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+    const errorMessage = rawError ? esc(String(rawError).slice(0, 500)) : undefined;
     
-    if (!monitorId || !status || !url) {
+    if (!monitorId || (status !== 'DOWN' && status !== 'UP')) {
       return new Response(
         JSON.stringify({ error: "Missing required parameters" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -106,6 +117,10 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    // Always use the stored monitor URL, never a caller-supplied one
+    const url = esc(String(monitor.url));
+    monitor.name = esc(String(monitor.name));
 
     // Get user profile for notification preferences
     const { data: profile } = await supabaseClient
