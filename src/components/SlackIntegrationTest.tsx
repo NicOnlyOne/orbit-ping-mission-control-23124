@@ -68,7 +68,7 @@ export const SlackIntegrationTest = ({ slackChannel = "", slackUsername = "", sl
         title: "Test Sent! 🎉",
         description: `Check ${slackChannel || 'your Slack channel'} for the test notification`
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error during Slack test:', error);
       setTestResult('error');
       toast({

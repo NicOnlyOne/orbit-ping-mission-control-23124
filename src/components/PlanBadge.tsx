@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { useSubscription, SubscriptionPlan } from "@/hooks/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
+import { PLAN_DEFINITIONS, type SubscriptionPlan } from "@/lib/plans";
 import { Crown, Rocket, Star } from "lucide-react";
 
 interface PlanBadgeProps {
@@ -9,31 +10,26 @@ interface PlanBadgeProps {
 
 const planConfig = {
   free: {
-    label: "Free",
     icon: Star,
     variant: "secondary" as const,
     className: "bg-muted text-muted-foreground"
   },
   'pro-25': {
-    label: "Pro",
     icon: Rocket,
     variant: "default" as const,
     className: "bg-nebula-blue text-foreground"
   },
   'pro-50': {
-    label: "Pro+",
     icon: Rocket,
     variant: "default" as const,
     className: "bg-nebula-blue text-foreground"
   },
   'enterprise-100': {
-    label: "Enterprise",
     icon: Crown,
     variant: "default" as const,
     className: "bg-gradient-to-r from-secondary to-primary text-foreground"
   },
   'enterprise-250': {
-    label: "Enterprise+",
     icon: Crown,
     variant: "default" as const,
     className: "bg-gradient-to-r from-secondary to-primary text-foreground"
@@ -52,7 +48,7 @@ export function PlanBadge({ plan: propPlan, className }: PlanBadgeProps) {
       className={`${config.className} ${className}`}
     >
       <Icon className="h-3 w-3 mr-1" />
-      {config.label}
+      {PLAN_DEFINITIONS[plan]?.badgeLabel || PLAN_DEFINITIONS.free.badgeLabel}
     </Badge>
   );
 }

@@ -40,7 +40,7 @@ export const SlackTestButton = ({ channel = "#general" }: SlackTestButtonProps) 
         title: "Test Sent! 🚀",
         description: `Check ${channel} in Slack for the test notification`
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Test Error",
         description: "Failed to send Slack test notification",

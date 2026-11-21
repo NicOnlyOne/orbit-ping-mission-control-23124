@@ -8,52 +8,24 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { Check, Mail, MessageSquare, Smartphone, Star, Rocket, Crown, Construction, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import {
+  DEFAULT_PLAN_SELECTION,
+  getSelectedPlanOption,
+  isPlanUpgrade,
+  PLAN_CATEGORIES,
+  type PlanCategoryId,
+  type SubscriptionPlan,
+} from "@/lib/plans";
+
+const PLAN_CATEGORY_ICONS = {
+  free: Star,
+  pro: Rocket,
+  enterprise: Crown,
+} as const;
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-const planCategories = [{
-  id: 'free',
-  name: 'Free',
-  icon: Star,
-  description: 'Great for small projects or testing your "mission control."',
-  baseFeatures: ['5 monitors', '5-minute checks', 'Email alerts', 'Basic uptime tracking'],
-  options: [{
-    monitors: 5,
-    price: 0,
-    planId: 'free' as const
-  }]
-}, {
-  id: 'pro',
-  name: 'Pro',
-  icon: Rocket,
-  description: 'Powerful for small teams who want fast alerts and better tracking.',
-  baseFeatures: ['1-minute checks', 'Email alerts', 'Slack notifications'],
-  options: [{
-    monitors: 25,
-    price: 12,
-    planId: 'pro-25' as const
-  }, {
-    monitors: 50,
-    price: 19,
-    planId: 'pro-50' as const
-  }]
-}, {
-  id: 'enterprise',
-  name: 'Enterprise',
-  icon: Crown,
-  description: 'Perfect for critical services where real-time phone alerts matter.',
-  baseFeatures: ['30-second checks', 'Email alerts', 'Slack notifications', 'SMS notifications', '100 SMS included/month'],
-  options: [{
-    monitors: 100,
-    price: 49,
-    planId: 'enterprise-100' as const
-  }, {
-    monitors: 250,
-    price: 99,
-    planId: 'enterprise-250' as const
-  }]
-}];
 export function PricingModal({
   open,
   onOpenChange
@@ -65,32 +37,20 @@ export function PricingModal({
   const { isAdmin } = useAdmin();
 
   // State for dropdown selections and notify dialog
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
-    pro: 25,
-    enterprise: 100
+  const [selectedOptions, setSelectedOptions] = useState<Record<PlanCategoryId, number>>({
+    ...DEFAULT_PLAN_SELECTION,
   });
   const [notifyPlan, setNotifyPlan] = useState<string | null>(null);
 
-  // Plan hierarchy for determining upgrade vs downgrade
-  const planHierarchy = {
-    free: 0,
-    'pro-25': 1,
-    'pro-50': 2,
-    'enterprise-100': 3,
-    'enterprise-250': 4
-  };
-  const isUpgrade = (targetPlan: string) => {
-    return planHierarchy[targetPlan as keyof typeof planHierarchy] > planHierarchy[currentPlan];
-  };
-  const handlePlanChange = async (planId: string) => {
+  const handlePlanChange = async (planId: SubscriptionPlan) => {
     if (planId === currentPlan) return;
     if (!isAdmin) {
       toast.info('Plan upgrades are coming soon! Stay tuned.');
       return;
     }
     try {
-      await upgradePlan(planId as any);
-      const action = isUpgrade(planId) ? 'upgraded' : 'changed';
+      await upgradePlan(planId);
+      const action = isPlanUpgrade(currentPlan, planId) ? 'upgraded' : 'changed';
       toast.success(`Successfully ${action} to plan!`);
       onOpenChange(false);
     } catch (error) {
@@ -98,11 +58,7 @@ export function PricingModal({
       console.error('Plan change error:', error);
     }
   };
-  const getCurrentOption = (category: typeof planCategories[0]) => {
-    if (category.id === 'free') return category.options[0];
-    return category.options.find(opt => opt.monitors === selectedOptions[category.id]) || category.options[0];
-  };
-  const isCurrentPlan = (planId: string) => currentPlan === planId;
+  const isCurrentPlan = (planId: SubscriptionPlan) => currentPlan === planId;
   return <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -120,9 +76,9 @@ export function PricingModal({
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-          {planCategories.map(category => {
-          const Icon = category.icon;
-          const currentOption = getCurrentOption(category);
+          {PLAN_CATEGORIES.map(category => {
+          const Icon = PLAN_CATEGORY_ICONS[category.id];
+          const currentOption = getSelectedPlanOption(category, selectedOptions[category.id]);
           const currentPlanActive = isCurrentPlan(currentOption.planId);
           const isFree = category.id === 'free';
           const canChange = isAdmin || isFree;
@@ -154,7 +110,7 @@ export function PricingModal({
                   {category.options.length > 1 && <div className="mb-4">
                       <Select value={selectedOptions[category.id]?.toString()} onValueChange={value => setSelectedOptions(prev => ({
                   ...prev,
-                  [category.id]: parseInt(value)
+                  [category.id]: Number(value)
                 }))}>
                         <SelectTrigger className="w-full bg-background border border-muted">
                           <SelectValue placeholder="Select monitors" />
@@ -196,7 +152,7 @@ export function PricingModal({
                       ? 'Current Plan' 
                       : !canChange 
                         ? <><Bell className="h-3.5 w-3.5 mr-2" /> Notify Me</>
-                        : `${isUpgrade(currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
+                        : `${isPlanUpgrade(currentPlan, currentOption.planId) ? 'Upgrade' : 'Change'} to ${category.name}`}
                   </Button>
                 </CardContent>
               </Card>;

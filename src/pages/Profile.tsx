@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription, SubscriptionPlan } from "@/hooks/useSubscription";
+import { useSubscription, type SubscriptionPlan } from "@/hooks/useSubscription";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, User, Mail, Lock, Bell, Save, Eye, EyeOff, Phone, Palette, MessageSquare, Crown, Smartphone, Shield } from "lucide-react";
 import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
+import { getErrorMessage } from "@/lib/errors";
+
+interface NotificationPreferences {
+  alerts: boolean;
+  downtime: boolean;
+  recovery: boolean;
+  sms: boolean;
+  slack: boolean;
+}
 
 interface UserProfile {
   full_name: string;
@@ -31,18 +40,41 @@ interface UserProfile {
   slack_channel: string;
   slack_webhook_url: string;
   notification_email: boolean;
-  notification_preferences: {
-    alerts: boolean;
-    downtime: boolean;
-    recovery: boolean;
-    sms: boolean;
-    slack: boolean;
-  };
+  notification_preferences: NotificationPreferences;
+}
+
+interface ProfileRpcResponse {
+  full_name?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+  avatar_url?: string | null;
+  theme_preference?: string | null;
+  slack_username?: string | null;
+  slack_channel?: string | null;
+  slack_webhook_url?: string | null;
+  notification_email?: boolean | null;
+  notification_preferences?: unknown;
+}
+
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  alerts: true,
+  downtime: true,
+  recovery: true,
+  sms: true,
+  slack: false,
+};
+
+function isNotificationPreferences(value: unknown): value is NotificationPreferences {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const preferences = value as Record<string, unknown>;
+  return ["alerts", "downtime", "recovery", "sms", "slack"].every(
+    (key) => typeof preferences[key] === "boolean",
+  );
 }
 
 const Profile = () => {
   const { user, loading } = useAuth();
-  const { plan, features, upgradePlan, refreshSubscription } = useSubscription();
+  const { plan, features, upgradePlan } = useSubscription();
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const [showPricing, setShowPricing] = useState(false);
@@ -57,13 +89,7 @@ const Profile = () => {
     slack_channel: "",
     slack_webhook_url: "",
     notification_email: true,
-    notification_preferences: {
-      alerts: true,
-      downtime: true,
-      recovery: true,
-      sms: true,
-      slack: false
-    }
+    notification_preferences: { ...DEFAULT_NOTIFICATION_PREFERENCES },
   });
   
   const [passwords, setPasswords] = useState({
@@ -82,43 +108,24 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  // Load user profile
-  useEffect(() => {
-    if (user) {
-      loadProfile();
+  const userId = user?.id;
+  const userEmail = user?.email;
+
+  const loadProfile = useCallback(async () => {
+    if (!userId) {
+      setIsLoadingProfile(false);
+      return;
     }
-  }, [user]);
 
-  const loadProfile = async () => {
     try {
-      // Use RPC to get decrypted profile data
       const { data, error } = await supabase.rpc('get_my_profile');
-
       if (error) throw error;
-      
+
       if (data) {
-        const profileData = data as any;
-        const defaultPreferences = {
-          alerts: true,
-          downtime: true,
-          recovery: true,
-          sms: true,
-          slack: false
-        };
-
-        // Type guard to check if notification_preferences is a valid object
-        const isValidPreferences = (prefs: any): prefs is typeof defaultPreferences => {
-          return prefs && typeof prefs === 'object' && 
-                 typeof prefs.alerts === 'boolean' &&
-                 typeof prefs.downtime === 'boolean' &&
-                 typeof prefs.recovery === 'boolean' &&
-                 typeof prefs.sms === 'boolean' &&
-                 typeof prefs.slack === 'boolean';
-        };
-
+        const profileData = data as ProfileRpcResponse;
         setProfile({
           full_name: profileData.full_name || "",
-          email: profileData.email || user?.email || "",
+          email: profileData.email || userEmail || "",
           phone_number: profileData.phone_number || "",
           avatar_url: profileData.avatar_url || null,
           theme_preference: profileData.theme_preference || "system",
@@ -126,39 +133,16 @@ const Profile = () => {
           slack_channel: profileData.slack_channel || "",
           slack_webhook_url: profileData.slack_webhook_url || "",
           notification_email: profileData.notification_email ?? true,
-          notification_preferences: isValidPreferences(profileData.notification_preferences) 
-            ? profileData.notification_preferences 
-            : defaultPreferences
+          notification_preferences: isNotificationPreferences(profileData.notification_preferences)
+            ? profileData.notification_preferences
+            : { ...DEFAULT_NOTIFICATION_PREFERENCES },
         });
       } else {
-        // Create profile if it doesn't exist
-        const defaultPreferences = {
-          alerts: true,
-          downtime: true,
-          recovery: true,
-          sms: true,
-          slack: false
-        };
-        
-        await supabase
-          .from('profiles')
-          .insert({
-            id: user?.id,
-            email: user?.email,
-            full_name: "",
-            phone_number: "",
-            avatar_url: null,
-            theme_preference: "system",
-            slack_username: "",
-            slack_channel: "",
-            slack_webhook_url: "",
-            notification_email: true,
-            notification_preferences: JSON.stringify(defaultPreferences)
-          } as any);
-        
-        setProfile({
+        const defaultPreferences = { ...DEFAULT_NOTIFICATION_PREFERENCES };
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: userId,
+          email: userEmail,
           full_name: "",
-          email: user?.email || "",
           phone_number: "",
           avatar_url: null,
           theme_preference: "system",
@@ -166,19 +150,38 @@ const Profile = () => {
           slack_channel: "",
           slack_webhook_url: "",
           notification_email: true,
-          notification_preferences: defaultPreferences
+          notification_preferences: JSON.stringify(defaultPreferences),
+        });
+        if (insertError) throw insertError;
+
+        setProfile({
+          full_name: "",
+          email: userEmail || "",
+          phone_number: "",
+          avatar_url: null,
+          theme_preference: "system",
+          slack_username: "",
+          slack_channel: "",
+          slack_webhook_url: "",
+          notification_email: true,
+          notification_preferences: defaultPreferences,
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Failed to load profile:", error);
       toast({
         title: "Error",
-        description: "Failed to load profile",
-        variant: "destructive"
+        description: getErrorMessage(error, "Failed to load profile"),
+        variant: "destructive",
       });
     } finally {
       setIsLoadingProfile(false);
     }
-  };
+  }, [userId, userEmail, toast]);
+
+  useEffect(() => {
+    void loadProfile();
+  }, [loadProfile]);
 
   const updateProfile = async () => {
     if (!user) return;
@@ -198,7 +201,7 @@ const Profile = () => {
           slack_webhook_url: profile.slack_webhook_url,
           notification_email: profile.notification_email,
           notification_preferences: JSON.stringify(profile.notification_preferences)
-        } as any)
+        })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -207,10 +210,10 @@ const Profile = () => {
         title: "Success",
         description: "Profile updated successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: getErrorMessage(error, "Failed to update profile"),
         variant: "destructive"
       });
     } finally {
@@ -233,10 +236,10 @@ const Profile = () => {
         title: "Email Update",
         description: "Check your new email for confirmation link",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update email",
+        description: getErrorMessage(error, "Failed to update email"),
         variant: "destructive"
       });
     } finally {
@@ -276,10 +279,10 @@ const Profile = () => {
         title: "Success",
         description: "Password updated successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update password",
+        description: getErrorMessage(error, "Failed to update password"),
         variant: "destructive"
       });
     } finally {

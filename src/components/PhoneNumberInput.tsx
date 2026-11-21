@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PhoneInput from "react-phone-number-input";
+import type { E164Number } from "libphonenumber-js";
 import "react-phone-number-input/style.css";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -73,7 +74,7 @@ export const PhoneNumberInput = ({
         title: "Validation Sent! 📱",
         description: "Check your phone for a test message from MissionControl"
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Unexpected error during SMS validation:', error);
       setValidationStatus('error');
       toast({
@@ -95,8 +96,8 @@ export const PhoneNumberInput = ({
             international
             countryCallingCodeEditable={false}
             defaultCountry="US"
-            value={value as any}
-            onChange={(phone: any) => onChange(phone || "")}
+            value={value as E164Number}
+            onChange={(phone) => onChange(phone || "")}
             placeholder={placeholder}
             className="phone-input"
           />

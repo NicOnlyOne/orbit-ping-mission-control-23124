@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +38,9 @@ import { Shield, Users, Activity, Search, ArrowLeft, RefreshCw, User, Satellite,
 import { AdminWaitlist } from "@/components/AdminWaitlist";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getPlanLabel, PLAN_SELECT_OPTIONS } from "@/lib/plans";
+
+const PAGE_SIZE = 10;
 
 interface AdminUser {
   id: string;
@@ -56,17 +59,6 @@ const getPlanBadgeVariant = (plan: string) => {
   return "secondary";
 };
 
-const PLANS: { value: string; label: string }[] = [
-  { value: "free", label: "Free" },
-  { value: "pro-25", label: "Pro 25" },
-  { value: "pro-50", label: "Pro 50" },
-  { value: "enterprise-100", label: "Enterprise 100" },
-  { value: "enterprise-250", label: "Enterprise 250" },
-];
-
-const getPlanLabel = (plan: string) => {
-  return PLANS.find((p) => p.value === plan)?.label || plan;
-};
 
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -77,17 +69,8 @@ const AdminDashboard = () => {
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [pendingChange, setPendingChange] = useState<{ userId: string; userName: string; currentPlan: string; newPlan: string } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
-  useEffect(() => {
-    if (isAdmin) {
-      loadUsers();
-    }
-  }, [isAdmin]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, planFilter]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-users");
@@ -95,10 +78,18 @@ const AdminDashboard = () => {
       setUsers(data?.users || []);
     } catch (error) {
       console.error("Failed to load users:", error);
+      toast.error("Failed to load users");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) void loadUsers();
+  }, [isAdmin, loadUsers]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, planFilter]);
 
   const confirmPlanChange = async () => {
     if (!pendingChange) return;
@@ -118,6 +109,39 @@ const AdminDashboard = () => {
       toast.error("Failed to update plan");
     }
   };
+
+  const filteredUsers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return users.filter((u) => {
+      const matchesSearch =
+        u.email.toLowerCase().includes(query) ||
+        (u.full_name || "").toLowerCase().includes(query);
+      const matchesPlan = planFilter === "all" || u.subscription_plan === planFilter;
+      return matchesSearch && matchesPlan;
+    });
+  }, [users, search, planFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [filteredUsers, safePage],
+  );
+
+  const { totalMonitors, activeMonitors, planDistribution } = useMemo(() => {
+    const distribution: Record<string, number> = {};
+    let total = 0;
+    let active = 0;
+
+    for (const user of users) {
+      total += user.monitors_total;
+      active += user.monitors_enabled;
+      const plan = user.subscription_plan || "free";
+      distribution[plan] = (distribution[plan] || 0) + 1;
+    }
+
+    return { totalMonitors: total, activeMonitors: active, planDistribution: distribution };
+  }, [users]);
 
   if (authLoading || adminLoading) {
     return (
@@ -149,27 +173,6 @@ const AdminDashboard = () => {
       </div>
     );
   }
-
-  const filteredUsers = users.filter((u) => {
-    const matchesSearch =
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.full_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchesPlan = planFilter === "all" || u.subscription_plan === planFilter;
-    return matchesSearch && matchesPlan;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const paginatedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-
-
-  const totalMonitors = users.reduce((sum, u) => sum + u.monitors_total, 0);
-  const activeMonitors = users.reduce((sum, u) => sum + u.monitors_enabled, 0);
-  const planDistribution = users.reduce((acc, u) => {
-    const plan = u.subscription_plan || "free";
-    acc[plan] = (acc[plan] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
@@ -275,7 +278,7 @@ const AdminDashboard = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Plans</SelectItem>
-                      {PLANS.map((p) => (
+                      {PLAN_SELECT_OPTIONS.map((p) => (
                         <SelectItem key={p.value} value={p.value}>
                           {p.label}
                         </SelectItem>
@@ -345,7 +348,7 @@ const AdminDashboard = () => {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {PLANS.map((p) => (
+                                  {PLAN_SELECT_OPTIONS.map((p) => (
                                     <SelectItem key={p.value} value={p.value}>
                                       <Badge variant={getPlanBadgeVariant(p.value)} className="text-caption">
                                         {p.label}

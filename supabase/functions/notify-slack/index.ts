@@ -69,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build Slack Block Kit message
-    const blocks: any[] = [
+    const blocks: Record<string, unknown>[] = [
       {
         type: "header",
         text: { type: "plain_text", text: title, emoji: true },

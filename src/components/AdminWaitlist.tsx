@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Search, RefreshCw, Download } from "lucide-react";
 import { format } from "date-fns";
+import { getPlanLabel } from "@/lib/plans";
 
 interface WaitlistEntry {
   id: string;
@@ -21,16 +22,6 @@ interface WaitlistEntry {
   plan_interest: string;
   created_at: string;
 }
-
-const getPlanLabel = (plan: string) => {
-  const labels: Record<string, string> = {
-    "pro-25": "Pro 25",
-    "pro-50": "Pro 50",
-    "enterprise-100": "Enterprise 100",
-    "enterprise-250": "Enterprise 250",
-  };
-  return labels[plan] || plan;
-};
 
 const getPlanBadgeVariant = (plan: string) => {
   if (plan.startsWith("enterprise")) return "destructive" as const;
@@ -43,7 +34,7 @@ export function AdminWaitlist() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const loadWaitlist = async () => {
+  const loadWaitlist = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -57,21 +48,27 @@ export function AdminWaitlist() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadWaitlist();
   }, []);
 
-  const filtered = entries.filter((e) =>
-    e.email.toLowerCase().includes(search.toLowerCase()) ||
-    e.plan_interest.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    void loadWaitlist();
+  }, [loadWaitlist]);
 
-  const planCounts = entries.reduce((acc, e) => {
-    acc[e.plan_interest] = (acc[e.plan_interest] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return entries.filter((entry) =>
+      entry.email.toLowerCase().includes(query) ||
+      entry.plan_interest.toLowerCase().includes(query)
+    );
+  }, [entries, search]);
+
+  const planCounts = useMemo(
+    () => entries.reduce((acc, entry) => {
+      acc[entry.plan_interest] = (acc[entry.plan_interest] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    [entries],
+  );
 
   const csvCell = (v: string) => {
     let s = String(v ?? "");

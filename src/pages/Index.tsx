@@ -6,22 +6,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MissionCard } from "@/components/MissionCard";
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { AnonymousUrlChecker } from "@/components/AnonymousUrlChecker";
-import { SMSForm } from "@/components/SMSForm";
-import { SMSLogs } from "@/components/SMSLogs";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
-import { SlackTestButton } from "@/components/SlackTestButton";
-import { SlackIntegrationTest } from "@/components/SlackIntegrationTest";
 import { PlanLimitWarning } from "@/components/PlanLimitWarning";
 import { PricingModal } from "@/components/PricingModal";
 import { NotifyMeDialog } from "@/components/NotifyMeDialog";
 import heroImage from "@/assets/hero-mission-control.jpg";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMonitors } from "@/hooks/useMonitors";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "react-router-dom";
 import { Plus, RefreshCw, Check, Star, Rocket, Crown, Mail, MessageSquare, Smartphone, Lock, Bell } from "lucide-react";
+import {
+  DEFAULT_PLAN_SELECTION,
+  getSelectedPlanOption,
+  PLAN_CATEGORIES,
+  type PlanCategoryId,
+} from "@/lib/plans";
+
+const PLAN_CATEGORY_ICONS = {
+  free: Star,
+  pro: Rocket,
+  enterprise: Crown,
+} as const;
 
 const Index = () => {
   const [newMissionUrl, setNewMissionUrl] = useState("");
@@ -31,9 +39,8 @@ const Index = () => {
   const [notifyPlan, setNotifyPlan] = useState<string | null>(null);
   
   // State for dropdown selections
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, number>>({
-    pro: 25,
-    enterprise: 100
+  const [selectedOptions, setSelectedOptions] = useState<Record<PlanCategoryId, number>>({
+    ...DEFAULT_PLAN_SELECTION,
   });
   const {
     user,
@@ -50,74 +57,9 @@ const Index = () => {
     toggleMonitorEnabled
   } = useMonitors();
 
-  const { canEnableMonitor, plan } = useSubscription();
+  const { plan, enabledMonitorCount, maxMonitors } = useSubscription();
 
-  // Plan categories for pricing
-  const planCategories = [{
-    id: 'free',
-    name: 'Free',
-    icon: Star,
-    description: 'Great for small projects or testing your "mission control."',
-    baseFeatures: ['5 monitors', '5-minute checks', 'Email alerts', 'Basic uptime tracking'],
-    options: [{
-      monitors: 5,
-      price: 0,
-      planId: 'free' as const
-    }]
-  }, {
-    id: 'pro',
-    name: 'Pro',
-    icon: Rocket,
-    description: 'Powerful for small teams who want fast alerts and better tracking.',
-    baseFeatures: ['1-minute checks', 'Email alerts', 'Slack notifications'],
-    options: [{
-      monitors: 25,
-      price: 12,
-      planId: 'pro-25' as const
-    }, {
-      monitors: 50,
-      price: 19,
-      planId: 'pro-50' as const
-    }]
-  }, {
-    id: 'enterprise',
-    name: 'Enterprise',
-    icon: Crown,
-    description: 'Perfect for critical services where real-time phone alerts matter.',
-    baseFeatures: ['30-second checks', 'Email alerts', 'Slack notifications', 'SMS notifications', '100 SMS included/month'],
-    options: [{
-      monitors: 100,
-      price: 49,
-      planId: 'enterprise-100' as const
-    }, {
-      monitors: 250,
-      price: 99,
-      planId: 'enterprise-250' as const
-    }]
-  }];
-
-  const getCurrentOption = (category: typeof planCategories[0]) => {
-    if (category.id === 'free') return category.options[0];
-    return category.options.find(opt => opt.monitors === selectedOptions[category.id]) || category.options[0];
-  };
-
-  // Handle pending mission from anonymous testing
-  useEffect(() => {
-    if (user) {
-      const pendingUrl = localStorage.getItem('pending-mission-url');
-      if (pendingUrl) {
-        setNewMissionUrl(pendingUrl);
-        setNewMissionName('My Website');
-        localStorage.removeItem('pending-mission-url');
-
-        // Auto-deploy the mission after a short delay
-        setTimeout(() => {
-          handleDeployMission();
-        }, 1000);
-      }
-    }
-  }, [user]);
-  const handleDeployMission = async () => {
+  const handleDeployMission = useCallback(async () => {
     if (!newMissionUrl.trim() || !user) return;
     setIsDeploying(true);
     try {
@@ -129,7 +71,30 @@ const Index = () => {
     } finally {
       setIsDeploying(false);
     }
-  };
+  }, [createMonitor, newMissionName, newMissionUrl, user]);
+
+  // Deploy a saved anonymous health check directly, without waiting for local state to update.
+  useEffect(() => {
+    if (!user) return;
+    const pendingUrl = localStorage.getItem('pending-mission-url');
+    if (!pendingUrl) return;
+
+    localStorage.removeItem('pending-mission-url');
+    setNewMissionUrl(pendingUrl);
+    setNewMissionName('My Website');
+    setIsDeploying(true);
+
+    const deployPendingMission = async () => {
+      const monitorId = await createMonitor('My Website', pendingUrl);
+      if (monitorId) {
+        setNewMissionUrl('');
+        setNewMissionName('');
+      }
+      setIsDeploying(false);
+    };
+
+    void deployPendingMission();
+  }, [user, createMonitor]);
   if (loading) {
     return <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium flex items-center justify-center">
         <div className="text-center">
@@ -268,7 +233,7 @@ const Index = () => {
                   <Label htmlFor="mission-url" className="text-body-sm font-token-medium">
                     Target Coordinates (URL)
                   </Label>
-                  <Input id="mission-url" placeholder="https://your-website.com" value={newMissionUrl} onChange={e => setNewMissionUrl(e.target.value)} className="bg-space-dark border-space-light mt-space-sm" onKeyPress={e => e.key === 'Enter' && handleDeployMission()} />
+                  <Input id="mission-url" placeholder="https://your-website.com" value={newMissionUrl} onChange={e => setNewMissionUrl(e.target.value)} className="bg-space-dark border-space-light mt-space-sm" onKeyDown={e => e.key === 'Enter' && handleDeployMission()} />
                 </div>
                  <Button variant="rocket" className="w-full" disabled={!newMissionUrl.trim() || isDeploying} onClick={handleDeployMission}>
                    {isDeploying ? <>
@@ -296,7 +261,7 @@ const Index = () => {
                 <h3 className="text-section-title font-token-bold text-foreground">Active Missions</h3>
                 <div className="text-body-sm text-muted-foreground">
                   {monitors.length} {monitors.length === 1 ? 'mission' : 'missions'} deployed
-                  {plan === 'free' && ` • ${monitors.filter(m => m.enabled).length}/1 active`}
+                  {plan === 'free' && ` • ${enabledMonitorCount}/${maxMonitors} active`}
                 </div>
               </div>
               
@@ -398,12 +363,11 @@ const Index = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-space-xl">
-              {planCategories.map((category, index) => {
-                const Icon = category.icon;
-                const currentOption = getCurrentOption(category);
+              {PLAN_CATEGORIES.map((category) => {
+                const Icon = PLAN_CATEGORY_ICONS[category.id];
+                const currentOption = getSelectedPlanOption(category, selectedOptions[category.id]);
                 const isFree = category.id === 'free';
                 const isPaid = !isFree;
-                const isPopular = index === 1;
 
                 return (
                   <Card key={category.id} className={`relative transition-all duration-300 ${
@@ -460,7 +424,7 @@ const Index = () => {
                             value={selectedOptions[category.id]?.toString()}
                             onValueChange={(value) => setSelectedOptions(prev => ({
                               ...prev,
-                              [category.id]: parseInt(value)
+                              [category.id]: Number(value)
                             }))}
                             disabled={isPaid}
                           >

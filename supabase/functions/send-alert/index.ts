@@ -16,7 +16,7 @@ interface AlertRequest {
 
 async function sendSlackWebhook(
   webhookUrl: string,
-  monitor: any,
+  monitor: { name: string },
   status: string,
   url: string,
   errorMessage?: string,

@@ -36,26 +36,32 @@ export function Navigation() {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    if (user) {
-      loadProfile();
+    const userId = user?.id;
+    if (!userId) {
+      setProfile(null);
+      return;
     }
-  }, [user]);
 
-  const loadProfile = async () => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', user?.id)
-        .maybeSingle();
-      
-      if (data) {
-        setProfile(data);
+    let active = true;
+    const loadProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('id', userId)
+          .maybeSingle();
+        if (error) throw error;
+        if (active) setProfile(data);
+      } catch (error) {
+        console.error('Error loading profile:', error);
       }
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    }
-  };
+    };
+
+    void loadProfile();
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ export function NotifyMeDialog({ open, onOpenChange, planName }: NotifyMeDialogP
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -35,8 +35,8 @@ export function NotifyMeDialog({ open, onOpenChange, planName }: NotifyMeDialogP
     setLoading(true);
     try {
       const { error: dbError } = await supabase
-        .from("plan_waitlist" as any)
-        .insert({ email: result.data, plan_interest: planName } as any);
+        .from("plan_waitlist")
+        .insert({ email: result.data, plan_interest: planName });
 
       if (dbError) throw dbError;
 

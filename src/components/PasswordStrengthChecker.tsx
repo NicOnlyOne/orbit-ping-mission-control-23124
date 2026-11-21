@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo, useEffect, type CSSProperties } from "react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
@@ -36,7 +36,7 @@ export const PasswordStrengthChecker = ({ password, onStrengthChange }: Password
       },
       {
         label: "Contains special character",
-        met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(password),
+        met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(password),
       },
       {
         label: "No common patterns",
@@ -86,9 +86,8 @@ export const PasswordStrengthChecker = ({ password, onStrengthChange }: Password
           value={strengthPercentage} 
           className="h-2"
           style={{
-            // @ts-ignore
             '--progress-color': getStrengthColor()
-          }}
+          } as CSSProperties}
         />
       </div>
       

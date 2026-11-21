@@ -1,4 +1,12 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
+
+interface MonitorRecord {
+  id: string;
+  user_id: string;
+  name: string;
+  url: string;
+  status: string;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -154,7 +162,7 @@ Deno.serve(async (req) => {
 });
 
 // Handle authenticated monitor test with DB updates and alerts
-async function handleMonitorTest(supabase: any, monitor: any, forceAlert: boolean) {
+async function handleMonitorTest(supabase: SupabaseClient, monitor: MonitorRecord, forceAlert: boolean) {
   const { status, responseTime, error } = await testUrl(monitor.url);
   const previousStatus = monitor.status;
 
@@ -245,7 +253,7 @@ async function testUrl(url: string): Promise<{ status: string; responseTime: num
 
 async function sendEmailAlert(
   email: string,
-  monitor: any,
+  monitor: MonitorRecord,
   alertType: string,
   responseTime: number,
   errorMsg: string | null

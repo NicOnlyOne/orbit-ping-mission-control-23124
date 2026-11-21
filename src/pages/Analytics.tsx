@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { Activity, Users, DollarSign, TrendingUp, Calendar, BarChart3 } from "lucide-react";
+import { format, subDays } from "date-fns";
+import { Activity, Users, DollarSign, TrendingUp, Calendar } from "lucide-react";
 
 interface AnalyticsData {
   userSignups: { date: string; signups: number; cumulative: number }[];
@@ -25,100 +25,95 @@ interface AnalyticsData {
 
 type TimeRange = "7d" | "30d" | "all";
 
+const CHART_CONFIG = {
+  signups: { label: "User Signups", color: "hsl(var(--nebula-blue))" },
+  active: { label: "Active Users", color: "hsl(var(--astro-green))" },
+  revenue: { label: "Revenue", color: "hsl(var(--rocket-red))" },
+};
+
+function getDateRange(timeRange: TimeRange) {
+  const now = new Date();
+  switch (timeRange) {
+    case "7d":
+      return { start: subDays(now, 7), end: now };
+    case "30d":
+      return { start: subDays(now, 30), end: now };
+    case "all":
+      return { start: new Date("2024-01-01"), end: now };
+  }
+}
+
 const Analytics = () => {
   const { user, loading } = useAuth();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const requestIdRef = useRef(0);
 
-  useEffect(() => {
-    if (user) {
-      loadAnalyticsData();
-    }
-  }, [user, timeRange]);
-
-  const getDateRange = () => {
-    const now = new Date();
-    switch (timeRange) {
-      case "7d":
-        return { start: subDays(now, 7), end: now };
-      case "30d":
-        return { start: subDays(now, 30), end: now };
-      case "all":
-        return { start: new Date("2024-01-01"), end: now };
-    }
-  };
-
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
+
     try {
-      const { start, end } = getDateRange();
+      const { start, end } = getDateRange(timeRange);
+      const [profilesResult, monitorsResult, totalUsersResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("created_at")
+          .gte("created_at", start.toISOString())
+          .lte("created_at", end.toISOString())
+          .order("created_at"),
+        supabase
+          .from("monitors")
+          .select("created_at, user_id")
+          .gte("created_at", start.toISOString())
+          .lte("created_at", end.toISOString()),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+      ]);
 
-      // Load user signups
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("created_at")
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString())
-        .order("created_at");
+      if (requestId !== requestIdRef.current) return;
+      if (profilesResult.error) throw profilesResult.error;
+      if (monitorsResult.error) throw monitorsResult.error;
+      if (totalUsersResult.error) throw totalUsersResult.error;
 
-      // Load monitors for activity data (proxy for active users)
-      const { data: monitors } = await supabase
-        .from("monitors")
-        .select("created_at, user_id")
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString());
-
-      // Process user signups data
+      const profiles = profilesResult.data ?? [];
+      const monitors = monitorsResult.data ?? [];
+      const dayCount = timeRange === "7d" ? 7 : 30;
       const signupsByDate: Record<string, number> = {};
-      const totalUsersQuery = await supabase
-        .from("profiles")
-        .select("id", { count: "exact" });
 
-      profiles?.forEach((profile) => {
+      for (const profile of profiles) {
         const date = format(new Date(profile.created_at), "MMM dd");
         signupsByDate[date] = (signupsByDate[date] || 0) + 1;
-      });
+      }
 
-      // Generate chart data for user signups
       const userSignups = [];
       let cumulative = 0;
-      for (let i = timeRange === "7d" ? 7 : 30; i >= 0; i--) {
+      for (let i = dayCount; i >= 0; i--) {
         const date = format(subDays(end, i), "MMM dd");
         const signups = signupsByDate[date] || 0;
         cumulative += signups;
         userSignups.push({ date, signups, cumulative });
       }
 
-      // Generate active users data (using monitors as proxy)
       const activeUsersByDate: Record<string, Set<string>> = {};
-      monitors?.forEach((monitor) => {
+      for (const monitor of monitors) {
         const date = format(new Date(monitor.created_at), "MMM dd");
-        if (!activeUsersByDate[date]) {
-          activeUsersByDate[date] = new Set();
-        }
+        activeUsersByDate[date] ??= new Set();
         activeUsersByDate[date].add(monitor.user_id);
-      });
-
-      const activeUsers = [];
-      for (let i = timeRange === "7d" ? 7 : 30; i >= 0; i--) {
-        const date = format(subDays(end, i), "MMM dd");
-        const active = activeUsersByDate[date]?.size || 0;
-        activeUsers.push({ date, active });
       }
 
-      // Generate mock revenue data based on subscription plans
-      const { data: subscriptionProfiles } = await supabase
-        .from("profiles")
-        .select("subscription_plan, created_at")
-        .in("subscription_plan", ["pro", "enterprise"]);
+      const activeUsers = [];
+      for (let i = dayCount; i >= 0; i--) {
+        const date = format(subDays(end, i), "MMM dd");
+        activeUsers.push({ date, active: activeUsersByDate[date]?.size || 0 });
+      }
 
+      // Keep the existing demo revenue series while removing its unused database request.
       const revenue = [];
       let totalRevenue = 0;
-      for (let i = timeRange === "7d" ? 7 : 30; i >= 0; i--) {
+      for (let i = dayCount; i >= 0; i--) {
         const date = format(subDays(end, i), "MMM dd");
-        // Mock revenue calculation based on subscription plans
         const dayRevenue = Math.floor(Math.random() * 500) + 100;
         const orders = Math.floor(Math.random() * 10) + 1;
         totalRevenue += dayRevenue;
@@ -130,18 +125,25 @@ const Analytics = () => {
         activeUsers,
         revenue,
         overview: {
-          totalUsers: totalUsersQuery.count || 0,
-          activeUsers: new Set(monitors?.map(m => m.user_id)).size || 0,
+          totalUsers: totalUsersResult.count || 0,
+          activeUsers: new Set(monitors.map((monitor) => monitor.user_id)).size,
           totalRevenue,
           avgOrderValue: totalRevenue / revenue.reduce((sum, day) => sum + day.orders, 0) || 0,
         },
       });
     } catch (error) {
-      console.error("Error loading analytics:", error);
+      if (requestId === requestIdRef.current) console.error("Error loading analytics:", error);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  };
+  }, [timeRange]);
+
+  useEffect(() => {
+    if (isAdmin) void loadAnalyticsData();
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, [isAdmin, loadAnalyticsData]);
 
   if (loading || adminLoading) {
     return (
@@ -165,21 +167,6 @@ const Analytics = () => {
       </div>
     );
   }
-
-  const chartConfig = {
-    signups: {
-      label: "User Signups",
-      color: "hsl(var(--nebula-blue))",
-    },
-    active: {
-      label: "Active Users",
-      color: "hsl(var(--astro-green))",
-    },
-    revenue: {
-      label: "Revenue",
-      color: "hsl(var(--rocket-red))",
-    },
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-space-deep via-space-dark to-space-medium">
@@ -308,7 +295,7 @@ const Analytics = () => {
                     <CardDescription>New user registrations over time</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={CHART_CONFIG} className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={analyticsData?.userSignups || []}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--space-light))" />
@@ -342,7 +329,7 @@ const Analytics = () => {
                     <CardDescription>Daily active user engagement</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={CHART_CONFIG} className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={analyticsData?.activeUsers || []}>
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--space-light))" />
@@ -375,7 +362,7 @@ const Analytics = () => {
                   <CardDescription>Daily revenue and order volume</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={chartConfig} className="h-[400px]">
+                  <ChartContainer config={CHART_CONFIG} className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={analyticsData?.revenue || []}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--space-light))" />

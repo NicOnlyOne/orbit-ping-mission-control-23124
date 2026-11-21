@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { getErrorMessage } from '@/lib/errors';
 
 interface AvatarUploadProps {
   userId: string;
@@ -113,7 +114,7 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
     try {
       setUploading(true);
       const blob = await getCroppedBlob();
-      const fileName = `${Math.random()}.jpeg`;
+      const fileName = `${crypto.randomUUID()}.jpeg`;
       const filePath = `${userId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -135,8 +136,8 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
       setCropDialogOpen(false);
       setImgSrc('');
       toast({ title: "Success", description: "Avatar updated successfully!" });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error, "Failed to update avatar"), variant: "destructive" });
     } finally {
       setUploading(false);
     }
@@ -151,8 +152,8 @@ export function AvatarUpload({ userId, currentAvatarUrl, onAvatarChange, classNa
       if (error) throw error;
       onAvatarChange(null);
       toast({ title: "Success", description: "Avatar removed successfully!" });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error, "Failed to update avatar"), variant: "destructive" });
     } finally {
       setUploading(false);
     }

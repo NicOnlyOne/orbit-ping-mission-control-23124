@@ -1,38 +1,33 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "./useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+const ADMIN_ROLE_STALE_TIME = 5 * 60 * 1000;
 
 export function useAdmin() {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const userId = user?.id;
 
-  useEffect(() => {
-    if (!user) {
-      setIsAdmin(false);
-      setIsLoading(false);
-      return;
-    }
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-role", userId],
+    enabled: Boolean(userId),
+    staleTime: ADMIN_ROLE_STALE_TIME,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
 
-    const checkAdmin = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
+      if (error) throw error;
+      return Boolean(data);
+    },
+  });
 
-        setIsAdmin(!!data && !error);
-      } catch {
-        setIsAdmin(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAdmin();
-  }, [user]);
-
-  return { isAdmin, isLoading };
+  return {
+    isAdmin: userId ? data === true : false,
+    isLoading: userId ? isLoading : false,
+  };
 }
